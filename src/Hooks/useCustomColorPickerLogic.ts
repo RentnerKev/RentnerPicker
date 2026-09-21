@@ -1,4 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+    useEffect,
+    useMemo,
+    useRef,
+    useState,
+    useSyncExternalStore,
+} from 'react'
 import type { ChangeEvent, InvalidEvent, PointerEvent } from 'react'
 import type { ColorFormat, CustomColorPickerProps } from '../types.js'
 
@@ -220,6 +226,18 @@ function getHsvFromValue(value: string): HsvColor {
     return rgbToHsv(rgb)
 }
 
+function subscribeToEyeDropperSupport() {
+    return () => undefined
+}
+
+function getEyeDropperSupportSnapshot() {
+    return typeof window !== 'undefined' && 'EyeDropper' in window
+}
+
+function getEyeDropperSupportServerSnapshot() {
+    return false
+}
+
 export default function useCustomColorPickerLogic({
     value,
     onValueChange,
@@ -231,9 +249,14 @@ export default function useCustomColorPickerLogic({
 >) {
     const safeValue = value !== undefined && value !== null ? String(value) : ''
     const [draftValue, setDraftValue] = useState(safeValue)
+    const [previousSafeValue, setPreviousSafeValue] = useState(safeValue)
     const [isTouched, setIsTouched] = useState(false)
     const [isOpen, setIsOpen] = useState(false)
-    const [isEyeDropperSupported, setIsEyeDropperSupported] = useState(false)
+    const isEyeDropperSupported = useSyncExternalStore(
+        subscribeToEyeDropperSupport,
+        getEyeDropperSupportSnapshot,
+        getEyeDropperSupportServerSnapshot,
+    )
     const [pickerPosition, setPickerPosition] = useState<PickerPosition>({
         top: 0,
         left: 0,
@@ -263,16 +286,11 @@ export default function useCustomColorPickerLogic({
         ? toPickerHex(safeValue)
         : toPickerHex(draftValue || selectedHex)
 
-    useEffect(() => {
-        const nextHsvColor = getHsvFromValue(safeValue)
-
+    if (previousSafeValue !== safeValue) {
+        setPreviousSafeValue(safeValue)
         setDraftValue(safeValue)
-        setHsvColor(nextHsvColor)
-    }, [safeValue])
-
-    useEffect(() => {
-        setIsEyeDropperSupported('EyeDropper' in window)
-    }, [])
+        setHsvColor(getHsvFromValue(safeValue))
+    }
 
     useEffect(() => {
         validationInputRef.current?.setCustomValidity(error || '')
