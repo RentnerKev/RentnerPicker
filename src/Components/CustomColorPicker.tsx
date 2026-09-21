@@ -30,7 +30,11 @@ export function CustomColorPicker({
     className = 'w-full',
     customDesign,
 }: CustomColorPickerProps) {
-    const { ref, handler, state } = useCustomColorPickerLogic({
+    const {
+        ref: { popupRef, rootRef, validationInputRef },
+        handler,
+        state,
+    } = useCustomColorPickerLogic({
         value,
         onValueChange,
         required,
@@ -59,7 +63,7 @@ export function CustomColorPicker({
     const pickerPopup =
         state.isOpen && !disabled ? (
             <div
-                ref={ref.popupRef}
+                ref={popupRef}
                 role="dialog"
                 aria-modal="false"
                 className={`fixed z-[9999] rounded-xl border p-3 shadow-2xl ${design.bg} ${design.border}`}
@@ -147,9 +151,9 @@ export function CustomColorPicker({
         ) : null
 
     return (
-        <div ref={ref.rootRef} className={`group relative ${className}`}>
+        <div ref={rootRef} className={`group relative ${className}`}>
             <input
-                ref={ref.validationInputRef}
+                ref={validationInputRef}
                 name={name}
                 value={state.safeValue}
                 onChange={() => undefined}
