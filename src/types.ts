@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { AriaAttributes, ReactNode, Ref } from 'react'
 import type { PickerLocale, PickerMessages } from './i18n.js'
 
 export type ColorFormat = 'hex' | 'rgb'
@@ -13,6 +13,8 @@ export interface CustomColorPickerDesign {
     errorBorder?: string
     errorRing?: string
     errorText?: string
+    labelText?: string
+    descriptionText?: string
     iconColor?: string
     iconFocus?: string
     previewBorder?: string
@@ -20,13 +22,18 @@ export interface CustomColorPickerDesign {
     presetActiveBorder?: string
 }
 
-export interface CustomColorPickerProps {
+export interface CustomColorPickerProps extends AriaAttributes {
     id?: string
     name?: string
     value: string
     onValueChange: (value: string) => void
     required?: boolean
     disabled?: boolean
+    readOnly?: boolean
+    label?: ReactNode
+    description?: ReactNode
+    error?: string | null
+    triggerRef?: Ref<HTMLButtonElement>
     placeholder?: string
     format?: ColorFormat
     presets?: string[]

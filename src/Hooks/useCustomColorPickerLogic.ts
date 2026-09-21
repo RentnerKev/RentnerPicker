@@ -1,14 +1,16 @@
 import {
+    useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
     useSyncExternalStore,
 } from 'react'
-import type { ChangeEvent, InvalidEvent, PointerEvent } from 'react'
+import type { ChangeEvent, InvalidEvent, PointerEvent, Ref } from 'react'
 import { pickerMessageCatalog } from '../i18n.js'
 import type { PickerMessages } from '../i18n.js'
 import type { ColorFormat, CustomColorPickerProps } from '../types.js'
+import { resolveFieldError } from '../field.js'
 
 const hexRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i
 const rgbRegex =
@@ -40,6 +42,20 @@ interface EyeDropperConstructor {
 
 interface EyeDropperWindow extends Window {
     EyeDropper?: EyeDropperConstructor
+}
+
+function assignRef<Element>(
+    ref: Ref<Element> | undefined,
+    value: Element | null,
+) {
+    if (typeof ref === 'function') {
+        ref(value)
+        return
+    }
+
+    if (ref) {
+        ref.current = value
+    }
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -250,9 +266,20 @@ export default function useCustomColorPickerLogic({
     required,
     format = 'hex',
     messages = pickerMessageCatalog.de,
+    error: externalError,
+    disabled = false,
+    readOnly = false,
+    triggerRef: forwardedTriggerRef,
 }: Pick<
     CustomColorPickerProps,
-    'value' | 'onValueChange' | 'required' | 'format'
+    | 'value'
+    | 'onValueChange'
+    | 'required'
+    | 'format'
+    | 'error'
+    | 'disabled'
+    | 'readOnly'
+    | 'triggerRef'
 > & {
     messages?: PickerMessages
 }) {
@@ -276,9 +303,22 @@ export default function useCustomColorPickerLogic({
     )
     const rootRef = useRef<HTMLDivElement>(null)
     const popupRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLButtonElement>(null)
     const validationInputRef = useRef<HTMLInputElement>(null)
-    const error = getColorError(draftValue, required, messages)
-    const hasError = isTouched && error !== null
+    const internalError = getColorError(draftValue, required, messages)
+    const { error, hasError } = resolveFieldError(
+        internalError,
+        externalError,
+        isTouched,
+    )
+
+    const setTriggerRef = useCallback(
+        (node: HTMLButtonElement | null) => {
+            triggerRef.current = node
+            assignRef(forwardedTriggerRef, node)
+        },
+        [forwardedTriggerRef],
+    )
 
     const selectedHex = useMemo(
         () => rgbToHexValue(hsvToRgb(hsvColor)),
@@ -294,6 +334,10 @@ export default function useCustomColorPickerLogic({
     const previewColor = error
         ? toPickerHex(safeValue)
         : toPickerHex(draftValue || selectedHex)
+
+    if ((disabled || readOnly) && isOpen) {
+        setIsOpen(false)
+    }
 
     if (previousSafeValue !== safeValue) {
         setPreviousSafeValue(safeValue)
@@ -383,6 +427,8 @@ export default function useCustomColorPickerLogic({
         nextHex: string,
         nextHsvColor = getHsvFromValue(nextHex),
     ) {
+        if (disabled || readOnly) return
+
         const nextValue = hexToDisplayValue(nextHex, format)
         setHsvColor(nextHsvColor)
         setDraftValue(nextValue)
@@ -390,10 +436,12 @@ export default function useCustomColorPickerLogic({
     }
 
     function commitColor(nextValue: string) {
-        const nextError = getColorError(nextValue, required, messages)
+        if (disabled || readOnly) return
+
+        const nextInternalError = getColorError(nextValue, required, messages)
         setDraftValue(nextValue)
 
-        if (nextError) {
+        if (nextInternalError) {
             setIsTouched(true)
             return
         }
@@ -407,15 +455,19 @@ export default function useCustomColorPickerLogic({
     }
 
     function handleTextChange(event: ChangeEvent<HTMLInputElement>) {
+        if (disabled || readOnly) return
         setDraftValue(event.target.value)
     }
 
     function handleTextBlur() {
+        if (disabled || readOnly) return
         setIsTouched(true)
         commitColor(draftValue)
     }
 
     function handleColorAreaPointer(event: PointerEvent<HTMLButtonElement>) {
+        if (disabled || readOnly) return
+
         const rect = event.currentTarget.getBoundingClientRect()
         const nextSaturation = clamp(
             ((event.clientX - rect.left) / rect.width) * 100,
@@ -438,6 +490,8 @@ export default function useCustomColorPickerLogic({
     }
 
     function handleHueChange(event: ChangeEvent<HTMLInputElement>) {
+        if (disabled || readOnly) return
+
         const nextHsvColor = {
             ...hsvColor,
             hue: Number(event.target.value),
@@ -447,6 +501,7 @@ export default function useCustomColorPickerLogic({
     }
 
     function handlePresetClick(nextValue: string) {
+        if (disabled || readOnly) return
         commitColor(nextValue)
         setIsOpen(false)
     }
@@ -454,9 +509,12 @@ export default function useCustomColorPickerLogic({
     function handleInvalid(event: InvalidEvent<HTMLInputElement>) {
         event.preventDefault()
         setIsTouched(true)
+        triggerRef.current?.focus()
     }
 
     async function handleEyeDropperClick() {
+        if (disabled || readOnly) return
+
         const EyeDropper = (window as EyeDropperWindow).EyeDropper
 
         if (!EyeDropper) {
@@ -473,6 +531,8 @@ export default function useCustomColorPickerLogic({
     }
 
     function togglePicker() {
+        if (disabled || readOnly) return
+
         if (!isOpen) {
             setHsvColor(getHsvFromValue(draftValue || safeValue))
         }
@@ -484,6 +544,8 @@ export default function useCustomColorPickerLogic({
         ref: {
             popupRef,
             rootRef,
+            setTriggerRef,
+            triggerRef,
             validationInputRef,
         },
         handler: {
@@ -508,6 +570,12 @@ export default function useCustomColorPickerLogic({
             previewColor,
             safeValue,
             selectedHex,
+        },
+        setter: {
+            setDraftValue,
+            setHsvColor,
+            setIsOpen,
+            setIsTouched,
         },
     }
 }

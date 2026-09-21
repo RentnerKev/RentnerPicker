@@ -59,18 +59,50 @@ const messages: Partial<PickerMessages> = {
 />
 ```
 
+## Formularanbindung
+
+Der sichtbare Trigger unterstützt einen gemeinsamen Feldvertrag für Labels,
+Hilfetexte, kontrollierte externe Fehler und Fokussteuerung. Ein übergebenes
+`error` überschreibt die interne Validierung; mit `error={null}` kann ein
+externer Formularzustand den Fehler bewusst löschen. Bei einem ungültigen
+Submit wird der sichtbare Trigger fokussiert.
+Weitere React-`aria-*`-Attribute werden direkt an diesen Trigger
+weitergegeben.
+
+```tsx
+const pickerTriggerRef = useRef<HTMLButtonElement>(null)
+
+<CustomColorPicker
+    id="brand-color"
+    name="brandColor"
+    value={color}
+    onValueChange={setColor}
+    label="Markenfarbe"
+    description="Wird für Buttons und Hervorhebungen verwendet."
+    error={serverError}
+    triggerRef={pickerTriggerRef}
+    aria-describedby="brand-color-help"
+/>
+```
+
 ## API-Dokumentation
 
 ### `CustomColorPicker`-Props
 
 | Prop            | Typ                       | Standard       | Beschreibung                                     |
 | --------------- | ------------------------- | -------------- | ------------------------------------------------ |
-| `id`            | `string`                  | -              | Eindeutige ID für den nativen Color-Input.       |
+| `id`            | `string`                  | generiert      | Eindeutige ID für den sichtbaren Trigger.        |
 | `name`          | `string`                  | -              | Name für Formular-Submit und native Validierung. |
 | `value`         | `string`                  | -              | Aktueller Farbwert als HEX oder RGB.             |
 | `onValueChange` | `(value: string) => void` | -              | Callback bei gültiger Farbänderung.              |
 | `required`      | `boolean`                 | `false`        | Aktiviert Pflichtfeld-Validierung.               |
 | `disabled`      | `boolean`                 | `false`        | Deaktiviert Eingabe, Picker und Presets.         |
+| `readOnly`      | `boolean`                 | `false`        | Verhindert Änderungen, behält den Formularwert.  |
+| `label`         | `ReactNode`               | -              | Sichtbares Label des Feldes.                     |
+| `description`   | `ReactNode`               | -              | Hilfetext mit automatischer ARIA-Verknüpfung.    |
+| `error`         | `string \| null`          | `undefined`    | Kontrollierter externer Validierungsfehler.      |
+| `triggerRef`    | `Ref<HTMLButtonElement>`  | -              | Ref auf den sichtbaren, fokussierbaren Trigger.  |
+| `aria-*`        | `string`                  | -              | Zusätzliche zugängliche Beschriftungsreferenzen. |
 | `placeholder`   | `string`                  | `#13ecd6`      | Platzhalter im Textfeld.                         |
 | `format`        | `'hex' \| 'rgb'`          | `hex`          | Ausgabeformat für neue Werte.                    |
 | `presets`       | `string[]`                | Standardfarben | Farben für Schnell-Auswahl.                      |

@@ -1,8 +1,10 @@
 import { AlertCircle, Palette, Pipette, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { useId } from 'react'
 import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.js'
 import { resolvePickerMessages } from '../i18n.js'
 import type { CustomColorPickerProps } from '../types.js'
+import { mergeAriaIds } from '../field.js'
 
 const defaultPresets = [
     '#13ecd6',
@@ -22,6 +24,14 @@ export function CustomColorPicker({
     onValueChange,
     required = false,
     disabled = false,
+    readOnly = false,
+    label,
+    description,
+    error,
+    triggerRef,
+    'aria-label': ariaLabel,
+    'aria-labelledby': ariaLabelledBy,
+    'aria-describedby': ariaDescribedBy,
     placeholder = '#13ecd6',
     format = 'hex',
     presets = defaultPresets,
@@ -32,10 +42,21 @@ export function CustomColorPicker({
     customDesign,
     locale = 'de',
     messages: providedMessages,
+    ...ariaProps
 }: CustomColorPickerProps) {
+    const generatedId = useId()
+    const fieldId = id ?? `color-picker-${generatedId}`
+    const hasLabel = label !== undefined && label !== null && label !== false
+    const hasDescription =
+        description !== undefined &&
+        description !== null &&
+        description !== false
+    const labelId = hasLabel ? `${fieldId}-label` : undefined
+    const descriptionId = hasDescription ? `${fieldId}-description` : undefined
+    const errorId = `${fieldId}-error`
     const messages = resolvePickerMessages(locale, providedMessages)
     const {
-        ref: { popupRef, rootRef, validationInputRef },
+        ref: { popupRef, rootRef, setTriggerRef, validationInputRef },
         handler,
         state,
     } = useCustomColorPickerLogic({
@@ -44,7 +65,20 @@ export function CustomColorPicker({
         required,
         format,
         messages,
+        error,
+        disabled,
+        readOnly,
+        triggerRef,
     })
+
+    const resolvedLabelledBy = mergeAriaIds(ariaLabelledBy, labelId)
+    const resolvedDescribedBy = mergeAriaIds(
+        ariaDescribedBy,
+        descriptionId,
+        state.hasError ? errorId : undefined,
+    )
+    const resolvedAriaLabel =
+        ariaLabel ?? (resolvedLabelledBy ? undefined : messages.selectColor)
 
     const design = {
         bg: 'bg-input-dark',
@@ -56,6 +90,8 @@ export function CustomColorPicker({
         errorBorder: 'border-red-500',
         errorRing: 'focus-within:ring-red-500/50',
         errorText: 'text-red-500',
+        labelText: 'text-gray-200',
+        descriptionText: 'text-gray-400',
         iconColor: 'text-gray-500',
         iconFocus: 'group-focus-within:text-primary',
         previewBorder: 'border-border-dark',
@@ -66,7 +102,7 @@ export function CustomColorPicker({
 
     const activeColor = state.selectedHex.toLowerCase()
     const pickerPopup =
-        state.isOpen && !disabled ? (
+        state.isOpen && !disabled && !readOnly ? (
             <div
                 ref={popupRef}
                 role="dialog"
@@ -95,6 +131,7 @@ export function CustomColorPicker({
                             <button
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
+                                disabled={disabled || readOnly}
                                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
                                 aria-label={messages.eyeDropper}
                             >
@@ -104,6 +141,7 @@ export function CustomColorPicker({
                         <button
                             type="button"
                             onClick={handler.togglePicker}
+                            disabled={disabled || readOnly}
                             className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
                             aria-label={messages.closePicker}
                         >
@@ -127,6 +165,7 @@ export function CustomColorPicker({
                             'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)',
                     }}
                     aria-label={messages.colorArea}
+                    disabled={disabled || readOnly}
                 >
                     <span
                         className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.65)]"
@@ -148,6 +187,7 @@ export function CustomColorPicker({
                         max={359}
                         value={state.hsvColor.hue}
                         onChange={handler.handleHueChange}
+                        disabled={disabled || readOnly}
                         className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,#ef4444,#f59e0b,#f8fafc,#22c55e,#13ecd6,#3f40ad,#ec4899,#ef4444)] accent-primary"
                         aria-label={messages.hue}
                     />
@@ -157,13 +197,25 @@ export function CustomColorPicker({
 
     return (
         <div ref={rootRef} className={`group relative ${className}`}>
+            {hasLabel && (
+                <label
+                    id={labelId}
+                    htmlFor={fieldId}
+                    className={`mb-1.5 block text-sm font-medium ${design.labelText}`}
+                >
+                    {label}
+                </label>
+            )}
+
             <input
                 ref={validationInputRef}
                 name={name}
                 value={state.safeValue}
                 onChange={() => undefined}
                 onInvalid={handler.handleInvalid}
-                required={required}
+                required={required && error === undefined}
+                disabled={disabled}
+                readOnly={readOnly}
                 tabIndex={-1}
                 aria-hidden="true"
                 className="pointer-events-none absolute left-0 top-1/2 h-px w-px -translate-y-1/2 opacity-0"
@@ -191,12 +243,40 @@ export function CustomColorPicker({
                 </div>
 
                 <button
-                    id={id}
+                    id={fieldId}
+                    ref={setTriggerRef}
                     type="button"
                     onClick={handler.togglePicker}
                     disabled={disabled}
-                    aria-label={messages.selectColor}
+                    {...ariaProps}
+                    aria-disabled={
+                        disabled || ariaProps['aria-disabled'] || undefined
+                    }
+                    aria-readonly={
+                        readOnly || ariaProps['aria-readonly'] || undefined
+                    }
+                    aria-label={resolvedAriaLabel}
+                    aria-labelledby={resolvedLabelledBy}
+                    aria-describedby={resolvedDescribedBy}
+                    aria-invalid={
+                        state.hasError || ariaProps['aria-invalid'] || undefined
+                    }
+                    aria-errormessage={
+                        state.hasError
+                            ? errorId
+                            : ariaProps['aria-errormessage']
+                    }
+                    aria-required={
+                        disabled
+                            ? undefined
+                            : error === undefined
+                              ? required ||
+                                ariaProps['aria-required'] ||
+                                undefined
+                              : ariaProps['aria-required']
+                    }
                     aria-expanded={state.isOpen}
+                    aria-haspopup={ariaProps['aria-haspopup'] ?? 'dialog'}
                     className={`h-8 w-11 shrink-0 cursor-pointer rounded-lg border transition-transform active:scale-95 disabled:cursor-not-allowed ${design.previewBorder}`}
                     style={{ backgroundColor: state.previewColor }}
                 />
@@ -207,8 +287,18 @@ export function CustomColorPicker({
                         onChange={handler.handleTextChange}
                         onBlur={handler.handleTextBlur}
                         disabled={disabled}
+                        readOnly={readOnly}
                         placeholder={placeholder}
                         aria-invalid={state.hasError}
+                        aria-errormessage={state.hasError ? errorId : undefined}
+                        aria-required={
+                            required && !disabled && error === undefined
+                                ? true
+                                : undefined
+                        }
+                        aria-label={resolvedAriaLabel}
+                        aria-labelledby={resolvedLabelledBy}
+                        aria-describedby={resolvedDescribedBy}
                         className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${design.text} ${design.placeholder} disabled:cursor-not-allowed`}
                     />
                 )}
@@ -222,8 +312,21 @@ export function CustomColorPicker({
                 )}
             </div>
 
+            {hasDescription && (
+                <p
+                    id={descriptionId}
+                    className={`mt-1 text-xs ${design.descriptionText}`}
+                >
+                    {description}
+                </p>
+            )}
+
             {state.hasError && state.error && (
-                <p className={`mt-1 text-xs font-semibold ${design.errorText}`}>
+                <p
+                    id={errorId}
+                    role="alert"
+                    className={`mt-1 text-xs font-semibold ${design.errorText}`}
+                >
                     {state.error}
                 </p>
             )}
@@ -245,7 +348,7 @@ export function CustomColorPicker({
                                 onClick={() =>
                                     handler.handlePresetClick(preset)
                                 }
-                                disabled={disabled}
+                                disabled={disabled || readOnly}
                                 aria-label={messages.presetColor(preset)}
                                 className={`h-7 w-7 cursor-pointer rounded-lg border transition-all disabled:cursor-not-allowed ${
                                     isActive
