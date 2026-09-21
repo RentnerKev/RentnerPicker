@@ -31,6 +31,34 @@ function MyComponent() {
 }
 ```
 
+## Lokalisierung
+
+Die deutschen Meldungen und ARIA-Texte sind standardmäßig aktiv. Mit
+`locale="en"` werden die vollständigen englischen Standardtexte verwendet.
+Einzelne Texte können über ein typisiertes `Partial<PickerMessages>`-Objekt
+überschrieben werden. Der Katalog und der Resolver sind ebenfalls als
+`pickerMessageCatalog` und `resolvePickerMessages` exportiert.
+
+```tsx
+import {
+    CustomColorPicker,
+    type PickerMessages,
+} from '@rentnerkev/picker'
+
+const messages: Partial<PickerMessages> = {
+    invalidColor: 'Please enter a HEX or RGB color',
+    selectColor: 'Choose a color',
+    presetColor: (color) => `Use ${color}`,
+}
+
+<CustomColorPicker
+    value={color}
+    onValueChange={setColor}
+    locale="en"
+    messages={messages}
+/>
+```
+
 ## API-Dokumentation
 
 ### `CustomColorPicker`-Props
@@ -51,6 +79,8 @@ function MyComponent() {
 | `icon`          | `ReactNode`               | `Palette`      | Optionales Icon links in der Komponente.         |
 | `className`     | `string`                  | `w-full`       | Klassen für den äußeren Container.               |
 | `customDesign`  | `CustomColorPickerDesign` | -              | Objekt zur individuellen Gestaltung.             |
+| `locale`        | `'de' \| 'en'`            | `'de'`         | Sprache der Standard- und ARIA-Texte.            |
+| `messages`      | `Partial<PickerMessages>` | -              | Überschreibt einzelne Standard- und ARIA-Texte.  |
 
 ## CSS-Integration
 

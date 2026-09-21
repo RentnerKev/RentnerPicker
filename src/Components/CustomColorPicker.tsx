@@ -1,6 +1,7 @@
 import { AlertCircle, Palette, Pipette, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.js'
+import { resolvePickerMessages } from '../i18n.js'
 import type { CustomColorPickerProps } from '../types.js'
 
 const defaultPresets = [
@@ -29,7 +30,10 @@ export function CustomColorPicker({
     icon,
     className = 'w-full',
     customDesign,
+    locale = 'de',
+    messages: providedMessages,
 }: CustomColorPickerProps) {
+    const messages = resolvePickerMessages(locale, providedMessages)
     const {
         ref: { popupRef, rootRef, validationInputRef },
         handler,
@@ -39,6 +43,7 @@ export function CustomColorPicker({
         onValueChange,
         required,
         format,
+        messages,
     })
 
     const design = {
@@ -91,7 +96,7 @@ export function CustomColorPicker({
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
                                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
-                                aria-label="Farbe mit Pipette auswählen"
+                                aria-label={messages.eyeDropper}
                             >
                                 <Pipette className="h-4 w-4" />
                             </button>
@@ -100,7 +105,7 @@ export function CustomColorPicker({
                             type="button"
                             onClick={handler.togglePicker}
                             className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
-                            aria-label="Picker schließen"
+                            aria-label={messages.closePicker}
                         >
                             <X className="h-4 w-4" />
                         </button>
@@ -121,7 +126,7 @@ export function CustomColorPicker({
                         backgroundImage:
                             'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)',
                     }}
-                    aria-label="Farbfläche"
+                    aria-label={messages.colorArea}
                 >
                     <span
                         className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.65)]"
@@ -144,7 +149,7 @@ export function CustomColorPicker({
                         value={state.hsvColor.hue}
                         onChange={handler.handleHueChange}
                         className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,#ef4444,#f59e0b,#f8fafc,#22c55e,#13ecd6,#3f40ad,#ec4899,#ef4444)] accent-primary"
-                        aria-label="Farbton"
+                        aria-label={messages.hue}
                     />
                 </div>
             </div>
@@ -190,7 +195,7 @@ export function CustomColorPicker({
                     type="button"
                     onClick={handler.togglePicker}
                     disabled={disabled}
-                    aria-label="Farbe auswählen"
+                    aria-label={messages.selectColor}
                     aria-expanded={state.isOpen}
                     className={`h-8 w-11 shrink-0 cursor-pointer rounded-lg border transition-transform active:scale-95 disabled:cursor-not-allowed ${design.previewBorder}`}
                     style={{ backgroundColor: state.previewColor }}
@@ -241,7 +246,7 @@ export function CustomColorPicker({
                                     handler.handlePresetClick(preset)
                                 }
                                 disabled={disabled}
-                                aria-label={`Farbe ${preset} auswählen`}
+                                aria-label={messages.presetColor(preset)}
                                 className={`h-7 w-7 cursor-pointer rounded-lg border transition-all disabled:cursor-not-allowed ${
                                     isActive
                                         ? `ring-2 ring-offset-2 ring-offset-background-dark ${design.presetActiveBorder}`

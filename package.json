@@ -17,6 +17,7 @@
     "scripts": {
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
         "typecheck": "tsc --noEmit",
+        "test": "bun test",
         "prepare": "bun run build",
         "pack:check": "bun pm pack --dry-run",
         "playground:dev": "bun --cwd playground dev",
@@ -25,7 +26,7 @@
         "lint:fix": "oxlint --fix .",
         "format": "oxfmt .",
         "format:check": "oxfmt --check .",
-        "verify": "bun run typecheck && bun run lint && bun run format:check && bun run build && bun run pack:check"
+        "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run pack:check"
     },
     "repository": {
         "type": "git",

@@ -6,6 +6,8 @@ import {
     useSyncExternalStore,
 } from 'react'
 import type { ChangeEvent, InvalidEvent, PointerEvent } from 'react'
+import { pickerMessageCatalog } from '../i18n.js'
+import type { PickerMessages } from '../i18n.js'
 import type { ColorFormat, CustomColorPickerProps } from '../types.js'
 
 const hexRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i
@@ -198,11 +200,15 @@ function hexToDisplayValue(value: string, format: ColorFormat) {
     return normalizeHex(value)
 }
 
-function getColorError(value: string, required?: boolean) {
+function getColorError(
+    value: string,
+    required: boolean | undefined,
+    messages: PickerMessages,
+) {
     const trimmedValue = value.trim()
 
     if (required && !trimmedValue) {
-        return 'Dieses Feld ist erforderlich'
+        return messages.required
     }
 
     if (!trimmedValue) {
@@ -210,7 +216,7 @@ function getColorError(value: string, required?: boolean) {
     }
 
     if (!hexRegex.test(trimmedValue) && !rgbRegex.test(trimmedValue)) {
-        return 'Bitte eine gültige HEX- oder RGB-Farbe angeben'
+        return messages.invalidColor
     }
 
     return null
@@ -243,10 +249,13 @@ export default function useCustomColorPickerLogic({
     onValueChange,
     required,
     format = 'hex',
+    messages = pickerMessageCatalog.de,
 }: Pick<
     CustomColorPickerProps,
     'value' | 'onValueChange' | 'required' | 'format'
->) {
+> & {
+    messages?: PickerMessages
+}) {
     const safeValue = value !== undefined && value !== null ? String(value) : ''
     const [draftValue, setDraftValue] = useState(safeValue)
     const [previousSafeValue, setPreviousSafeValue] = useState(safeValue)
@@ -268,7 +277,7 @@ export default function useCustomColorPickerLogic({
     const rootRef = useRef<HTMLDivElement>(null)
     const popupRef = useRef<HTMLDivElement>(null)
     const validationInputRef = useRef<HTMLInputElement>(null)
-    const error = getColorError(draftValue, required)
+    const error = getColorError(draftValue, required, messages)
     const hasError = isTouched && error !== null
 
     const selectedHex = useMemo(
@@ -381,7 +390,7 @@ export default function useCustomColorPickerLogic({
     }
 
     function commitColor(nextValue: string) {
-        const nextError = getColorError(nextValue, required)
+        const nextError = getColorError(nextValue, required, messages)
         setDraftValue(nextValue)
 
         if (nextError) {

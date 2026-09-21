@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { PickerLocale, PickerMessages } from './i18n.js'
 
 export type ColorFormat = 'hex' | 'rgb'
 
@@ -34,4 +35,8 @@ export interface CustomColorPickerProps {
     icon?: ReactNode
     className?: string
     customDesign?: CustomColorPickerDesign
+    locale?: PickerLocale
+    messages?: Partial<PickerMessages>
 }
+
+export type { PickerLocale, PickerMessages } from './i18n.js'
