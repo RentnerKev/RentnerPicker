@@ -22,6 +22,7 @@ export function CustomColorPicker({
     name,
     value,
     onValueChange,
+    onValidityChange,
     required = false,
     disabled = false,
     readOnly = false,
@@ -56,12 +57,19 @@ export function CustomColorPicker({
     const errorId = `${fieldId}-error`
     const messages = resolvePickerMessages(locale, providedMessages)
     const {
-        ref: { popupRef, rootRef, setTriggerRef, validationInputRef },
+        ref: {
+            colorAreaRef,
+            popupRef,
+            rootRef,
+            setTriggerRef,
+            validationInputRef,
+        },
         handler,
         state,
     } = useCustomColorPickerLogic({
         value,
         onValueChange,
+        onValidityChange,
         required,
         format,
         messages,
@@ -107,6 +115,7 @@ export function CustomColorPicker({
                 ref={popupRef}
                 role="dialog"
                 aria-modal="false"
+                aria-label={messages.selectColor}
                 className={`fixed z-[9999] rounded-xl border p-3 shadow-2xl ${design.bg} ${design.border}`}
                 style={{
                     left: `${state.pickerPosition.left}px`,
@@ -140,7 +149,7 @@ export function CustomColorPicker({
                         )}
                         <button
                             type="button"
-                            onClick={handler.togglePicker}
+                            onClick={handler.handleClosePicker}
                             disabled={disabled || readOnly}
                             className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
                             aria-label={messages.closePicker}
@@ -151,23 +160,29 @@ export function CustomColorPicker({
                 </div>
 
                 <button
+                    ref={colorAreaRef}
                     type="button"
                     onPointerDown={handler.handleColorAreaPointer}
-                    onPointerMove={(event) => {
-                        if (event.buttons === 1) {
-                            handler.handleColorAreaPointer(event)
-                        }
-                    }}
+                    onPointerMove={handler.handleColorAreaPointerMove}
+                    onKeyDown={handler.handleColorAreaKeyDown}
                     className={`relative h-44 w-full cursor-pointer overflow-hidden rounded-xl border ${design.previewBorder}`}
                     style={{
                         backgroundColor: state.hueColor,
                         backgroundImage:
                             'linear-gradient(to top, #000, transparent), linear-gradient(to right, #fff, transparent)',
                     }}
-                    aria-label={messages.colorArea}
+                    aria-label={
+                        messages.colorAreaValue?.(
+                            state.hsvColor.saturation,
+                            state.hsvColor.value,
+                        ) ?? messages.colorArea
+                    }
+                    aria-description={messages.colorAreaInstructions}
+                    aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown PageUp PageDown Home End"
                     disabled={disabled || readOnly}
                 >
                     <span
+                        aria-hidden="true"
                         className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.65)]"
                         style={{
                             left: `${state.hsvColor.saturation}%`,
@@ -185,6 +200,7 @@ export function CustomColorPicker({
                         type="range"
                         min={0}
                         max={359}
+                        step={1}
                         value={state.hsvColor.hue}
                         onChange={handler.handleHueChange}
                         disabled={disabled || readOnly}

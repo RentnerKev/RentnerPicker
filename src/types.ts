@@ -3,6 +3,14 @@ import type { PickerLocale, PickerMessages } from './i18n.js'
 
 export type ColorFormat = 'hex' | 'rgb'
 
+export interface RgbColor {
+    red: number
+    green: number
+    blue: number
+}
+
+export type ColorValidityChangeHandler = (isValid: boolean) => void
+
 export interface CustomColorPickerDesign {
     bg?: string
     border?: string
@@ -27,6 +35,7 @@ export interface CustomColorPickerProps extends AriaAttributes {
     name?: string
     value: string
     onValueChange: (value: string) => void
+    onValidityChange?: ColorValidityChangeHandler
     required?: boolean
     disabled?: boolean
     readOnly?: boolean

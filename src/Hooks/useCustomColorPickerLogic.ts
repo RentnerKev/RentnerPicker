@@ -6,27 +6,27 @@ import {
     useState,
     useSyncExternalStore,
 } from 'react'
-import type { ChangeEvent, InvalidEvent, PointerEvent, Ref } from 'react'
+import type {
+    ChangeEvent,
+    InvalidEvent,
+    KeyboardEvent,
+    PointerEvent,
+    Ref,
+} from 'react'
+import {
+    clamp,
+    formatColor,
+    getHsvFromValue,
+    hsvToRgb,
+    rgbToHex,
+    toPickerHex,
+} from '../color.js'
+import type { HsvColor } from '../color.js'
+import { getColorError } from '../colorValidation.js'
+import { resolveFieldError } from '../field.js'
 import { pickerMessageCatalog } from '../i18n.js'
 import type { PickerMessages } from '../i18n.js'
-import type { ColorFormat, CustomColorPickerProps } from '../types.js'
-import { resolveFieldError } from '../field.js'
-
-const hexRegex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i
-const rgbRegex =
-    /^rgb\(\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*,\s*(25[0-5]|2[0-4]\d|1?\d?\d)\s*\)$/i
-
-interface RgbColor {
-    red: number
-    green: number
-    blue: number
-}
-
-interface HsvColor {
-    hue: number
-    saturation: number
-    value: number
-}
+import type { CustomColorPickerProps } from '../types.js'
 
 interface PickerPosition {
     top: number
@@ -58,196 +58,6 @@ function assignRef<Element>(
     }
 }
 
-function clamp(value: number, min: number, max: number) {
-    return Math.min(Math.max(value, min), max)
-}
-
-function expandShortHex(value: string) {
-    if (!/^#[0-9a-f]{3}$/i.test(value)) {
-        return value
-    }
-
-    return `#${value
-        .slice(1)
-        .split('')
-        .map((char) => `${char}${char}`)
-        .join('')}`
-}
-
-function normalizeHex(value: string) {
-    const trimmedValue = value.trim()
-    const nextValue = trimmedValue.startsWith('#')
-        ? trimmedValue
-        : `#${trimmedValue}`
-
-    return expandShortHex(nextValue).toLowerCase()
-}
-
-function rgbToHexValue({ red, green, blue }: RgbColor) {
-    return `#${[red, green, blue]
-        .map((part) =>
-            clamp(Math.round(part), 0, 255).toString(16).padStart(2, '0'),
-        )
-        .join('')}`
-}
-
-function hexToRgb(value: string): RgbColor | null {
-    const normalizedHex = normalizeHex(value)
-
-    if (!hexRegex.test(normalizedHex)) {
-        return null
-    }
-
-    return {
-        red: parseInt(normalizedHex.slice(1, 3), 16),
-        green: parseInt(normalizedHex.slice(3, 5), 16),
-        blue: parseInt(normalizedHex.slice(5, 7), 16),
-    }
-}
-
-function parseRgb(value: string): RgbColor | null {
-    const match = value.match(rgbRegex)
-
-    if (!match) {
-        return null
-    }
-
-    return {
-        red: Number(match[1]),
-        green: Number(match[2]),
-        blue: Number(match[3]),
-    }
-}
-
-function rgbStringToHex(value: string) {
-    const rgb = parseRgb(value)
-
-    return rgb ? rgbToHexValue(rgb) : value
-}
-
-function rgbToHsv({ red, green, blue }: RgbColor): HsvColor {
-    const normalizedRed = red / 255
-    const normalizedGreen = green / 255
-    const normalizedBlue = blue / 255
-    const max = Math.max(normalizedRed, normalizedGreen, normalizedBlue)
-    const min = Math.min(normalizedRed, normalizedGreen, normalizedBlue)
-    const delta = max - min
-
-    let hue = 0
-
-    if (delta !== 0) {
-        if (max === normalizedRed) {
-            hue = 60 * (((normalizedGreen - normalizedBlue) / delta) % 6)
-        } else if (max === normalizedGreen) {
-            hue = 60 * ((normalizedBlue - normalizedRed) / delta + 2)
-        } else {
-            hue = 60 * ((normalizedRed - normalizedGreen) / delta + 4)
-        }
-    }
-
-    return {
-        hue: Math.round(hue < 0 ? hue + 360 : hue),
-        saturation: max === 0 ? 0 : Math.round((delta / max) * 100),
-        value: Math.round(max * 100),
-    }
-}
-
-function hsvToRgb({ hue, saturation, value }: HsvColor): RgbColor {
-    const normalizedSaturation = saturation / 100
-    const normalizedValue = value / 100
-    const chroma = normalizedValue * normalizedSaturation
-    const x = chroma * (1 - Math.abs(((hue / 60) % 2) - 1))
-    const match = normalizedValue - chroma
-
-    let red = 0
-    let green = 0
-    let blue = 0
-
-    if (hue < 60) {
-        red = chroma
-        green = x
-    } else if (hue < 120) {
-        red = x
-        green = chroma
-    } else if (hue < 180) {
-        green = chroma
-        blue = x
-    } else if (hue < 240) {
-        green = x
-        blue = chroma
-    } else if (hue < 300) {
-        red = x
-        blue = chroma
-    } else {
-        red = chroma
-        blue = x
-    }
-
-    return {
-        red: Math.round((red + match) * 255),
-        green: Math.round((green + match) * 255),
-        blue: Math.round((blue + match) * 255),
-    }
-}
-
-function toPickerHex(value: string) {
-    if (hexRegex.test(value.trim())) {
-        return normalizeHex(value)
-    }
-
-    if (rgbRegex.test(value.trim())) {
-        return rgbStringToHex(value)
-    }
-
-    return '#13ecd6'
-}
-
-function hexToDisplayValue(value: string, format: ColorFormat) {
-    const rgb = hexToRgb(value)
-
-    if (!rgb) {
-        return value
-    }
-
-    if (format === 'rgb') {
-        return `rgb(${rgb.red}, ${rgb.green}, ${rgb.blue})`
-    }
-
-    return normalizeHex(value)
-}
-
-function getColorError(
-    value: string,
-    required: boolean | undefined,
-    messages: PickerMessages,
-) {
-    const trimmedValue = value.trim()
-
-    if (required && !trimmedValue) {
-        return messages.required
-    }
-
-    if (!trimmedValue) {
-        return null
-    }
-
-    if (!hexRegex.test(trimmedValue) && !rgbRegex.test(trimmedValue)) {
-        return messages.invalidColor
-    }
-
-    return null
-}
-
-function getHsvFromValue(value: string): HsvColor {
-    const rgb = hexToRgb(toPickerHex(value))
-
-    if (!rgb) {
-        return { hue: 176, saturation: 92, value: 93 }
-    }
-
-    return rgbToHsv(rgb)
-}
-
 function subscribeToEyeDropperSupport() {
     return () => undefined
 }
@@ -263,6 +73,7 @@ function getEyeDropperSupportServerSnapshot() {
 export default function useCustomColorPickerLogic({
     value,
     onValueChange,
+    onValidityChange,
     required,
     format = 'hex',
     messages = pickerMessageCatalog.de,
@@ -274,6 +85,7 @@ export default function useCustomColorPickerLogic({
     CustomColorPickerProps,
     | 'value'
     | 'onValueChange'
+    | 'onValidityChange'
     | 'required'
     | 'format'
     | 'error'
@@ -301,16 +113,21 @@ export default function useCustomColorPickerLogic({
     const [hsvColor, setHsvColor] = useState<HsvColor>(() =>
         getHsvFromValue(safeValue),
     )
+    const colorAreaRef = useRef<HTMLButtonElement>(null)
     const rootRef = useRef<HTMLDivElement>(null)
     const popupRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
     const validationInputRef = useRef<HTMLInputElement>(null)
+    const onValidityChangeRef = useRef(onValidityChange)
+    const previousValidityRef = useRef<boolean | undefined>(undefined)
     const internalError = getColorError(draftValue, required, messages)
     const { error, hasError } = resolveFieldError(
         internalError,
         externalError,
         isTouched,
     )
+    const isValid = disabled || !error
+    const hasValidityChangeHandler = onValidityChange !== undefined
 
     const setTriggerRef = useCallback(
         (node: HTMLButtonElement | null) => {
@@ -320,14 +137,23 @@ export default function useCustomColorPickerLogic({
         [forwardedTriggerRef],
     )
 
-    const selectedHex = useMemo(
-        () => rgbToHexValue(hsvToRgb(hsvColor)),
-        [hsvColor],
-    )
+    const closePicker = useCallback((restoreFocus = false) => {
+        setIsOpen(false)
+
+        if (restoreFocus) {
+            queueMicrotask(() => triggerRef.current?.focus())
+        }
+    }, [])
+
+    const selectedHex = useMemo(() => rgbToHex(hsvToRgb(hsvColor)), [hsvColor])
     const hueColor = useMemo(
         () =>
-            rgbToHexValue(
-                hsvToRgb({ hue: hsvColor.hue, saturation: 100, value: 100 }),
+            rgbToHex(
+                hsvToRgb({
+                    hue: hsvColor.hue,
+                    saturation: 100,
+                    value: 100,
+                }),
             ),
         [hsvColor.hue],
     )
@@ -346,8 +172,28 @@ export default function useCustomColorPickerLogic({
     }
 
     useEffect(() => {
-        validationInputRef.current?.setCustomValidity(error || '')
-    }, [error])
+        onValidityChangeRef.current = onValidityChange
+    }, [onValidityChange])
+
+    useEffect(() => {
+        if (!hasValidityChangeHandler) {
+            previousValidityRef.current = undefined
+            return
+        }
+
+        if (previousValidityRef.current === isValid) {
+            return
+        }
+
+        previousValidityRef.current = isValid
+        onValidityChangeRef.current?.(isValid)
+    }, [hasValidityChangeHandler, isValid])
+
+    useEffect(() => {
+        validationInputRef.current?.setCustomValidity(
+            disabled ? '' : error || '',
+        )
+    }, [disabled, error])
 
     useEffect(() => {
         const input = validationInputRef.current
@@ -377,6 +223,8 @@ export default function useCustomColorPickerLogic({
             return
         }
 
+        colorAreaRef.current?.focus()
+
         function updatePickerPosition() {
             const root = rootRef.current
 
@@ -386,7 +234,8 @@ export default function useCustomColorPickerLogic({
 
             const rect = root.getBoundingClientRect()
             const width = Math.max(rect.width, 288)
-            const left = clamp(rect.left, 8, window.innerWidth - width - 8)
+            const maxLeft = Math.max(8, window.innerWidth - width - 8)
+            const left = clamp(rect.left, 8, maxLeft)
             const top = rect.bottom + 8
 
             setPickerPosition({ top, left, width })
@@ -403,9 +252,10 @@ export default function useCustomColorPickerLogic({
             }
         }
 
-        function handleKeyDown(event: KeyboardEvent) {
+        function handleKeyDown(event: globalThis.KeyboardEvent) {
             if (event.key === 'Escape') {
-                setIsOpen(false)
+                event.preventDefault()
+                closePicker(true)
             }
         }
 
@@ -421,7 +271,7 @@ export default function useCustomColorPickerLogic({
             window.removeEventListener('resize', updatePickerPosition)
             window.removeEventListener('scroll', updatePickerPosition, true)
         }
-    }, [isOpen])
+    }, [closePicker, isOpen])
 
     function commitHex(
         nextHex: string,
@@ -429,10 +279,14 @@ export default function useCustomColorPickerLogic({
     ) {
         if (disabled || readOnly) return
 
-        const nextValue = hexToDisplayValue(nextHex, format)
+        const nextValue = formatColor(nextHex, format)
         setHsvColor(nextHsvColor)
         setDraftValue(nextValue)
         onValueChange(nextValue)
+    }
+
+    function commitHsvColor(nextHsvColor: HsvColor) {
+        commitHex(rgbToHex(hsvToRgb(nextHsvColor)), nextHsvColor)
     }
 
     function commitColor(nextValue: string) {
@@ -469,6 +323,11 @@ export default function useCustomColorPickerLogic({
         if (disabled || readOnly) return
 
         const rect = event.currentTarget.getBoundingClientRect()
+
+        if (rect.width <= 0 || rect.height <= 0) {
+            return
+        }
+
         const nextSaturation = clamp(
             ((event.clientX - rect.left) / rect.width) * 100,
             0,
@@ -486,7 +345,80 @@ export default function useCustomColorPickerLogic({
         }
 
         event.currentTarget.setPointerCapture(event.pointerId)
-        commitHex(rgbToHexValue(hsvToRgb(nextHsvColor)), nextHsvColor)
+        commitHsvColor(nextHsvColor)
+    }
+
+    function handleColorAreaPointerMove(
+        event: PointerEvent<HTMLButtonElement>,
+    ) {
+        if (event.buttons === 1) {
+            handleColorAreaPointer(event)
+        }
+    }
+
+    function handleColorAreaKeyDown(event: KeyboardEvent<HTMLButtonElement>) {
+        if (disabled || readOnly) return
+
+        const step = event.shiftKey ? 10 : 1
+        let nextHsvColor: HsvColor
+
+        switch (event.key) {
+            case 'ArrowLeft':
+                nextHsvColor = {
+                    ...hsvColor,
+                    saturation: clamp(hsvColor.saturation - step, 0, 100),
+                }
+                break
+            case 'ArrowRight':
+                nextHsvColor = {
+                    ...hsvColor,
+                    saturation: clamp(hsvColor.saturation + step, 0, 100),
+                }
+                break
+            case 'ArrowUp':
+                nextHsvColor = {
+                    ...hsvColor,
+                    value: clamp(hsvColor.value + step, 0, 100),
+                }
+                break
+            case 'ArrowDown':
+                nextHsvColor = {
+                    ...hsvColor,
+                    value: clamp(hsvColor.value - step, 0, 100),
+                }
+                break
+            case 'PageUp':
+                nextHsvColor = {
+                    ...hsvColor,
+                    value: clamp(hsvColor.value + 10, 0, 100),
+                }
+                break
+            case 'PageDown':
+                nextHsvColor = {
+                    ...hsvColor,
+                    value: clamp(hsvColor.value - 10, 0, 100),
+                }
+                break
+            case 'Home':
+                nextHsvColor = { ...hsvColor, saturation: 0 }
+                break
+            case 'End':
+                nextHsvColor = { ...hsvColor, saturation: 100 }
+                break
+            default:
+                return
+        }
+
+        event.preventDefault()
+
+        if (
+            nextHsvColor.saturation === hsvColor.saturation &&
+            nextHsvColor.value === hsvColor.value
+        ) {
+            return
+        }
+
+        commitHsvColor(nextHsvColor)
     }
 
     function handleHueChange(event: ChangeEvent<HTMLInputElement>) {
@@ -494,10 +426,10 @@ export default function useCustomColorPickerLogic({
 
         const nextHsvColor = {
             ...hsvColor,
-            hue: Number(event.target.value),
+            hue: clamp(Number(event.target.value), 0, 359),
         }
 
-        commitHex(rgbToHexValue(hsvToRgb(nextHsvColor)), nextHsvColor)
+        commitHsvColor(nextHsvColor)
     }
 
     function handlePresetClick(nextValue: string) {
@@ -524,24 +456,31 @@ export default function useCustomColorPickerLogic({
         try {
             const result = await new EyeDropper().open()
             commitHex(result.sRGBHex)
-            setIsOpen(false)
+            closePicker(true)
         } catch {
             return
         }
     }
 
+    function handleClosePicker() {
+        closePicker(true)
+    }
+
     function togglePicker() {
         if (disabled || readOnly) return
 
-        if (!isOpen) {
-            setHsvColor(getHsvFromValue(draftValue || safeValue))
+        if (isOpen) {
+            closePicker(true)
+            return
         }
 
-        setIsOpen((current) => !current)
+        setHsvColor(getHsvFromValue(draftValue || safeValue))
+        setIsOpen(true)
     }
 
     return {
         ref: {
+            colorAreaRef,
             popupRef,
             rootRef,
             setTriggerRef,
@@ -549,7 +488,10 @@ export default function useCustomColorPickerLogic({
             validationInputRef,
         },
         handler: {
+            handleClosePicker,
+            handleColorAreaKeyDown,
             handleColorAreaPointer,
+            handleColorAreaPointerMove,
             handleEyeDropperClick,
             handleHueChange,
             handleInvalid,
@@ -566,6 +508,7 @@ export default function useCustomColorPickerLogic({
             hsvColor,
             isEyeDropperSupported,
             isOpen,
+            isValid,
             pickerPosition,
             previewColor,
             safeValue,
