@@ -9,7 +9,7 @@ on:
             tag:
                 description: Existing release tag to publish
                 required: true
-                default: v1.0.0
+                default: v2.0.0
                 type: string
 
 permissions:
@@ -59,6 +59,13 @@ jobs:
                   package-manager-cache: false
 
             - name: Install dependencies
+              run: bun install --frozen-lockfile
+
+            - name: Install Playwright Chromium
+              run: bunx playwright install --with-deps chromium
+
+            - name: Install playground dependencies
+              working-directory: playground
               run: bun install --frozen-lockfile
 
             - name: Verify package name

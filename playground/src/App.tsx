@@ -107,7 +107,7 @@ export function App() {
 
                     <button
                         type="submit"
-                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-semibold text-background-dark transition-all hover:bg-primary-hover active:scale-[0.98]"
+                        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 font-semibold text-background-dark transition-colors hover:bg-primary-hover active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                         <Send className="h-5 w-5" />
                         Farben speichern

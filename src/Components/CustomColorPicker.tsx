@@ -5,6 +5,7 @@ import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.js'
 import { resolvePickerMessages } from '../i18n.js'
 import type { CustomColorPickerProps } from '../types.js'
 import { mergeAriaIds } from '../field.js'
+import { toPickerHex } from '../color.js'
 
 const defaultPresets = [
     '#13ecd6',
@@ -92,12 +93,12 @@ export function CustomColorPicker({
         bg: 'bg-input-dark',
         border: 'border-border-dark',
         text: 'text-white',
-        placeholder: 'placeholder-gray-600',
+        placeholder: 'placeholder-gray-400',
         focusRing: 'focus-within:ring-primary/50',
         focusBorder: 'focus-within:border-primary',
         errorBorder: 'border-red-500',
         errorRing: 'focus-within:ring-red-500/50',
-        errorText: 'text-red-500',
+        errorText: 'text-red-400',
         labelText: 'text-gray-200',
         descriptionText: 'text-gray-400',
         iconColor: 'text-gray-500',
@@ -108,7 +109,7 @@ export function CustomColorPicker({
         ...customDesign,
     }
 
-    const activeColor = state.selectedHex.toLowerCase()
+    const activeColor = toPickerHex(state.safeValue).toLowerCase()
     const pickerPopup =
         state.isOpen && !disabled && !readOnly ? (
             <div
@@ -116,11 +117,12 @@ export function CustomColorPicker({
                 role="dialog"
                 aria-modal="false"
                 aria-label={messages.selectColor}
-                className={`fixed z-[9999] rounded-xl border p-3 shadow-2xl ${design.bg} ${design.border}`}
+                className={`fixed z-[9999] overflow-y-auto overscroll-contain rounded-xl border p-3 shadow-2xl motion-reduce:animate-none ${design.bg} ${design.border}`}
                 style={{
                     left: `${state.pickerPosition.left}px`,
                     top: `${state.pickerPosition.top}px`,
                     width: `${state.pickerPosition.width}px`,
+                    maxHeight: `${state.pickerPosition.maxHeight}px`,
                 }}
             >
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -141,7 +143,7 @@ export function CustomColorPicker({
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
                                 disabled={disabled || readOnly}
-                                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
+                                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
                                 aria-label={messages.eyeDropper}
                             >
                                 <Pipette className="h-4 w-4" />
@@ -151,7 +153,7 @@ export function CustomColorPicker({
                             type="button"
                             onClick={handler.handleClosePicker}
                             disabled={disabled || readOnly}
-                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text}`}
+                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
                             aria-label={messages.closePicker}
                         >
                             <X className="h-4 w-4" />
@@ -165,7 +167,7 @@ export function CustomColorPicker({
                     onPointerDown={handler.handleColorAreaPointer}
                     onPointerMove={handler.handleColorAreaPointerMove}
                     onKeyDown={handler.handleColorAreaKeyDown}
-                    className={`relative h-44 w-full cursor-pointer overflow-hidden rounded-xl border ${design.previewBorder}`}
+                    className={`relative h-44 w-full cursor-pointer overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${design.previewBorder}`}
                     style={{
                         backgroundColor: state.hueColor,
                         backgroundImage:
@@ -204,7 +206,7 @@ export function CustomColorPicker({
                         value={state.hsvColor.hue}
                         onChange={handler.handleHueChange}
                         disabled={disabled || readOnly}
-                        className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,#ef4444,#f59e0b,#f8fafc,#22c55e,#13ecd6,#3f40ad,#ec4899,#ef4444)] accent-primary"
+                        className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,#ef4444,#f59e0b,#f8fafc,#22c55e,#13ecd6,#3f40ad,#ec4899,#ef4444)] accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                         aria-label={messages.hue}
                     />
                 </div>
@@ -238,7 +240,7 @@ export function CustomColorPicker({
             />
 
             <div
-                className={`flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2 transition-all ${
+                className={`flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2 transition-colors ${
                     state.hasError
                         ? `${design.errorBorder} focus-within:ring-2 ${design.errorRing}`
                         : `${design.border} focus-within:ring-2 ${design.focusRing} ${design.focusBorder}`
@@ -282,18 +284,9 @@ export function CustomColorPicker({
                             ? errorId
                             : ariaProps['aria-errormessage']
                     }
-                    aria-required={
-                        disabled
-                            ? undefined
-                            : error === undefined
-                              ? required ||
-                                ariaProps['aria-required'] ||
-                                undefined
-                              : ariaProps['aria-required']
-                    }
                     aria-expanded={state.isOpen}
                     aria-haspopup={ariaProps['aria-haspopup'] ?? 'dialog'}
-                    className={`h-8 w-11 shrink-0 cursor-pointer rounded-lg border transition-transform active:scale-95 disabled:cursor-not-allowed ${design.previewBorder}`}
+                    className={`h-8 w-11 shrink-0 cursor-pointer rounded-lg border transition-transform motion-safe:active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed ${design.previewBorder}`}
                     style={{ backgroundColor: state.previewColor }}
                 />
 
@@ -302,6 +295,8 @@ export function CustomColorPicker({
                         value={state.draftValue}
                         onChange={handler.handleTextChange}
                         onBlur={handler.handleTextBlur}
+                        autoComplete="off"
+                        inputMode="text"
                         disabled={disabled}
                         readOnly={readOnly}
                         placeholder={placeholder}
@@ -315,7 +310,7 @@ export function CustomColorPicker({
                         aria-label={resolvedAriaLabel}
                         aria-labelledby={resolvedLabelledBy}
                         aria-describedby={resolvedDescribedBy}
-                        className={`min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none ${design.text} ${design.placeholder} disabled:cursor-not-allowed`}
+                        className={`min-w-0 flex-1 bg-transparent text-sm font-semibold focus-visible:outline-none ${design.text} ${design.placeholder} disabled:cursor-not-allowed`}
                     />
                 )}
 
@@ -366,7 +361,8 @@ export function CustomColorPicker({
                                 }
                                 disabled={disabled || readOnly}
                                 aria-label={messages.presetColor(preset)}
-                                className={`h-7 w-7 cursor-pointer rounded-lg border transition-all disabled:cursor-not-allowed ${
+                                aria-pressed={isActive}
+                                className={`h-7 w-7 cursor-pointer rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed ${
                                     isActive
                                         ? `ring-2 ring-offset-2 ring-offset-background-dark ${design.presetActiveBorder}`
                                         : design.presetBorder

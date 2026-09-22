@@ -30,12 +30,15 @@ jobs:
             - name: Install library dependencies
               run: bun install --frozen-lockfile
 
-            - name: Verify library
-              run: bun run verify
+            - name: Install Playwright Chromium
+              run: bunx playwright install --with-deps chromium
 
             - name: Install playground dependencies
               working-directory: playground
               run: bun install --frozen-lockfile
+
+            - name: Verify library
+              run: bun run verify
 
             - name: Build playground
               working-directory: playground

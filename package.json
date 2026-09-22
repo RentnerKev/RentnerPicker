@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/picker",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "A controlled, accessible React color picker with presets and validation.",
     "author": "RentnerKev",
     "license": "MIT",
@@ -23,13 +23,14 @@
         "test": "bun test",
         "prepare": "bun run build",
         "pack:check": "bun pm pack --dry-run",
+        "test:e2e": "playwright test",
         "playground:dev": "bun --cwd playground dev",
         "playground:build": "bun --cwd playground build",
         "lint": "oxlint .",
         "lint:fix": "oxlint --fix .",
         "format": "oxfmt .",
         "format:check": "oxfmt --check .",
-        "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run pack:check"
+        "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run pack:check && bun run test:e2e"
     },
     "repository": {
         "type": "git",
@@ -51,7 +52,9 @@
         "react-dom": "^19.0.0"
     },
     "devDependencies": {
+        "@axe-core/playwright": "^4.13.0",
         "@happy-dom/global-registrator": "^20.14.5",
+        "@playwright/test": "^1.63.0",
         "@tailwindcss/vite": "^4.3.3",
         "@testing-library/react": "^16.3.3",
         "@testing-library/user-event": "^14.6.7",

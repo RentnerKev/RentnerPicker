@@ -195,6 +195,7 @@ The package entry scans only the published JavaScript under `dist` and provides 
 ```bash
 bun install
 bun run verify
+bun run test:e2e
 bun run playground:dev
 ```
 

@@ -16,6 +16,10 @@
 }
 
 @layer base {
+    :root {
+        color-scheme: dark;
+    }
+
     body {
         background-color: var(--color-background-dark);
         color: #d1d5db;
@@ -81,5 +85,12 @@
     }
     100% {
         transform: translate(-50%, -50%) rotate(360deg) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .glow-effect {
+        animation: none;
+        transition: none;
     }
 }

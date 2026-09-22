@@ -27,12 +27,7 @@ import { resolveFieldError } from '../field.js'
 import { pickerMessageCatalog } from '../i18n.js'
 import type { PickerMessages } from '../i18n.js'
 import type { CustomColorPickerProps } from '../types.js'
-
-interface PickerPosition {
-    top: number
-    left: number
-    width: number
-}
+import usePickerOverlay from './usePickerOverlay.js'
 
 interface EyeDropperConstructor {
     new (): {
@@ -105,17 +100,10 @@ export default function useCustomColorPickerLogic({
         getEyeDropperSupportSnapshot,
         getEyeDropperSupportServerSnapshot,
     )
-    const [pickerPosition, setPickerPosition] = useState<PickerPosition>({
-        top: 0,
-        left: 0,
-        width: 288,
-    })
     const [hsvColor, setHsvColor] = useState<HsvColor>(() =>
         getHsvFromValue(safeValue),
     )
     const colorAreaRef = useRef<HTMLButtonElement>(null)
-    const rootRef = useRef<HTMLDivElement>(null)
-    const popupRef = useRef<HTMLDivElement>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
     const validationInputRef = useRef<HTMLInputElement>(null)
     const onValidityChangeRef = useRef(onValidityChange)
@@ -144,6 +132,12 @@ export default function useCustomColorPickerLogic({
             queueMicrotask(() => triggerRef.current?.focus())
         }
     }, [])
+
+    const overlay = usePickerOverlay({
+        initialFocusRef: colorAreaRef,
+        isOpen,
+        onClose: closePicker,
+    })
 
     const selectedHex = useMemo(() => rgbToHex(hsvToRgb(hsvColor)), [hsvColor])
     const hueColor = useMemo(
@@ -217,61 +211,6 @@ export default function useCustomColorPickerLogic({
             form.removeEventListener('submit', handleFormSubmit)
         }
     }, [])
-
-    useEffect(() => {
-        if (!isOpen) {
-            return
-        }
-
-        colorAreaRef.current?.focus()
-
-        function updatePickerPosition() {
-            const root = rootRef.current
-
-            if (!root) {
-                return
-            }
-
-            const rect = root.getBoundingClientRect()
-            const width = Math.max(rect.width, 288)
-            const maxLeft = Math.max(8, window.innerWidth - width - 8)
-            const left = clamp(rect.left, 8, maxLeft)
-            const top = rect.bottom + 8
-
-            setPickerPosition({ top, left, width })
-        }
-
-        function handlePointerDown(event: globalThis.PointerEvent) {
-            const target = event.target as Node
-
-            if (
-                !rootRef.current?.contains(target) &&
-                !popupRef.current?.contains(target)
-            ) {
-                setIsOpen(false)
-            }
-        }
-
-        function handleKeyDown(event: globalThis.KeyboardEvent) {
-            if (event.key === 'Escape') {
-                event.preventDefault()
-                closePicker(true)
-            }
-        }
-
-        updatePickerPosition()
-        document.addEventListener('pointerdown', handlePointerDown)
-        document.addEventListener('keydown', handleKeyDown)
-        window.addEventListener('resize', updatePickerPosition)
-        window.addEventListener('scroll', updatePickerPosition, true)
-
-        return () => {
-            document.removeEventListener('pointerdown', handlePointerDown)
-            document.removeEventListener('keydown', handleKeyDown)
-            window.removeEventListener('resize', updatePickerPosition)
-            window.removeEventListener('scroll', updatePickerPosition, true)
-        }
-    }, [closePicker, isOpen])
 
     function commitHex(
         nextHex: string,
@@ -481,8 +420,8 @@ export default function useCustomColorPickerLogic({
     return {
         ref: {
             colorAreaRef,
-            popupRef,
-            rootRef,
+            popupRef: overlay.ref.popupRef,
+            rootRef: overlay.ref.rootRef,
             setTriggerRef,
             triggerRef,
             validationInputRef,
@@ -509,7 +448,7 @@ export default function useCustomColorPickerLogic({
             isEyeDropperSupported,
             isOpen,
             isValid,
-            pickerPosition,
+            pickerPosition: overlay.state.pickerPosition,
             previewColor,
             safeValue,
             selectedHex,
