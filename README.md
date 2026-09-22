@@ -165,12 +165,19 @@ HTML-Range-Inputs mit Einerschritten.
 
 ## CSS-Integration
 
-Da diese Bibliothek Tailwind CSS verwendet, füge die Quellen in deine Haupt-CSS-Datei ein:
+Die Bibliothek liefert einen eigenen Tailwind-Einstieg. Importiere ihn nach
+Tailwind CSS in deine Haupt-CSS-Datei:
 
 ```css
 @import 'tailwindcss';
-@source "../node_modules/@rentnerkev/picker";
+@import '@rentnerkev/picker/tailwind.css';
 ```
+
+Der Paket-Einstieg scannt ausschließlich die veröffentlichten JavaScript-Dateien
+unter `dist`. Er stellt die gemeinsamen Theme-Tokens `primary`, `primary-hover`,
+`background-dark`, `surface-dark`, `input-dark`, `border-dark`, `secondary-text`
+und `muted-foreground` bereit. Eigene Werte können danach mit einem weiteren
+`@theme`-Block überschrieben werden.
 
 ## Entwicklung
 
