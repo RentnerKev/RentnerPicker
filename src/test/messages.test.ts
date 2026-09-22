@@ -18,6 +18,9 @@ describe('picker locale messages', () => {
         )
         expect(messages.eyeDropper).toBe('Farbe mit Pipette auswählen')
         expect(messages.closePicker).toBe('Picker schließen')
+        expect(messages.colorAreaValue?.(25, 75)).toBe(
+            'Farbfläche, Sättigung 25 Prozent, Helligkeit 75 Prozent',
+        )
         expect(messages.presetColor('#abc')).toBe('Farbe #abc auswählen')
     })
 
@@ -32,6 +35,9 @@ describe('picker locale messages', () => {
         expect(messages.eyeDropper).toBe('Select color with eyedropper')
         expect(messages.closePicker).toBe('Close picker')
         expect(messages.colorArea).toBe('Color area')
+        expect(messages.colorAreaValue?.(25, 75)).toBe(
+            'Color area, saturation 25 percent, brightness 75 percent',
+        )
         expect(messages.hue).toBe('Hue')
         expect(messages.selectColor).toBe('Select color')
         expect(messages.presetColor('#abc')).toBe('Select color #abc')
