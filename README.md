@@ -1,48 +1,56 @@
 # @rentnerkev/picker
 
-Ein kontrollierter und anpassbarer React-Color-Picker mit Presets, Formularvalidierung und Tailwind-Design.
+A controlled and accessible React color picker with presets, native form validation, localization, and Tailwind CSS styling.
 
 ## Installation
 
-Installiere das Paket mit npm oder Bun:
+Install the package with npm:
 
 ```bash
 npm install @rentnerkev/picker
 ```
 
-## Verwendung
+Or with Bun:
+
+```bash
+bun add @rentnerkev/picker
+```
+
+## Quick start
 
 ```tsx
-import { useState } from 'react'
 import { CustomColorPicker } from '@rentnerkev/picker'
+import { useState } from 'react'
 
-function MyComponent() {
+export function BrandColorPicker() {
     const [color, setColor] = useState('#13ecd6')
     const [isColorValid, setIsColorValid] = useState(true)
 
     return (
-        <CustomColorPicker
-            id="brand-color"
-            name="brandColor"
-            value={color}
-            onValueChange={setColor}
-            onValidityChange={setIsColorValid}
-            required
-        />
+        <div>
+            <CustomColorPicker
+                id="brand-color"
+                name="brandColor"
+                label="Brand color"
+                value={color}
+                onValueChange={setColor}
+                onValidityChange={setIsColorValid}
+                locale="en"
+                required
+            />
+            <p aria-live="polite">
+                {isColorValid ? 'Valid color' : 'Invalid color'}
+            </p>
+        </div>
     )
 }
 ```
 
-`onValueChange` wird nur mit einer gültigen, normalisierten Farbe aufgerufen.
-Ein ungültiger sichtbarer Entwurf überschreibt deshalb weder den kontrollierten
-Wert noch den Formularwert. `onValidityChange` meldet den aktuellen Zustand
-beim ersten Rendern und anschließend nur bei tatsächlichen Wechseln. Dabei
-werden `required` und kontrollierte externe Fehler berücksichtigt. Deaktivierte
-Felder gelten als gültig, weil sie von Browserformularen ausgeschlossen sind.
+`onValueChange` receives valid, normalized colors, plus an empty string when an optional input is cleared. An invalid non-empty draft never overwrites the controlled value or native form value. `onValidityChange` reports the initial validity and then fires only when validity changes. It includes `required` and controlled external errors; disabled fields are valid because browsers exclude them from form submission.
 
-## Farb-Utilities
+## Color utilities
 
-Die drei Hilfsfunktionen sind direkt aus dem Paket exportiert:
+The public color helpers normalize and validate supported values without relying on the component:
 
 ```ts
 import { hexToRgb, isValidColor, normalizeColor } from '@rentnerkev/picker'
@@ -55,24 +63,15 @@ isValidColor('#13ecd6') // true
 hexToRgb('#13ecd6') // { red: 19, green: 236, blue: 214 }
 ```
 
-Unterstützt werden drei- und sechsstellige HEX-Werte mit optionalem `#` sowie
-`rgb(r, g, b)` mit Kanälen von 0 bis 255. Alpha- und Prozentformate werden
-bewusst nicht teilweise interpretiert. `normalizeColor` liefert immer einen
-kleingeschriebenen sechsstelligen HEX-Wert oder `null`.
+The parser accepts three- and six-digit HEX values with an optional `#`, plus `rgb(r, g, b)` values with channels from 0 to 255. Alpha and percentage formats are rejected instead of being partially interpreted. `normalizeColor` returns a lowercase six-digit HEX value or `null`.
 
-## Lokalisierung
+## Localization
 
-Die deutschen Meldungen und ARIA-Texte sind standardmäßig aktiv. Mit
-`locale="en"` werden die vollständigen englischen Standardtexte verwendet.
-Einzelne Texte können über ein typisiertes `Partial<PickerMessages>`-Objekt
-überschrieben werden. Der Katalog und der Resolver sind ebenfalls als
-`pickerMessageCatalog` und `resolvePickerMessages` exportiert.
+German messages remain the default for backward compatibility. Set `locale="en"` for the complete English catalog, or override individual messages with a typed `Partial<PickerMessages>`. The catalog and resolver are available as `pickerMessageCatalog` and `resolvePickerMessages`.
 
 ```tsx
-import {
-    CustomColorPicker,
-    type PickerMessages,
-} from '@rentnerkev/picker'
+import { CustomColorPicker, type PickerMessages } from '@rentnerkev/picker'
+import { useState } from 'react'
 
 const messages: Partial<PickerMessages> = {
     invalidColor: 'Please enter a HEX or RGB color',
@@ -80,106 +79,118 @@ const messages: Partial<PickerMessages> = {
     presetColor: (color) => `Use ${color}`,
 }
 
-<CustomColorPicker
-    value={color}
-    onValueChange={setColor}
-    locale="en"
-    messages={messages}
-/>
+export function LocalizedPicker() {
+    const [color, setColor] = useState('#13ecd6')
+
+    return (
+        <CustomColorPicker
+            value={color}
+            onValueChange={setColor}
+            locale="en"
+            messages={messages}
+        />
+    )
+}
 ```
 
-## Formularanbindung
+## Forms and accessibility
 
-Der sichtbare Trigger unterstützt einen gemeinsamen Feldvertrag für Labels,
-Hilfetexte, kontrollierte externe Fehler und Fokussteuerung. Ein übergebenes
-`error` überschreibt die interne Validierung; mit `error={null}` kann ein
-externer Formularzustand den Fehler bewusst löschen. Bei einem ungültigen
-Submit wird der sichtbare Trigger fokussiert.
-Weitere React-`aria-*`-Attribute werden direkt an diesen Trigger
-weitergegeben.
-Ein deaktivierter Picker wird nicht als Formularwert übertragen; ein
-schreibgeschützter Picker behält seinen Wert.
+The visible trigger supports labels, descriptions, controlled external errors, native validation, forwarded `aria-*` attributes, and focus control. A string passed to `error` overrides internal validation; `error={null}` explicitly clears external and native errors. Invalid form submission focuses the visible trigger.
+
+Disabled pickers are excluded from form submission. Read-only pickers prevent changes while retaining their submitted value.
 
 ```tsx
-const pickerTriggerRef = useRef<HTMLButtonElement>(null)
+import { useRef, useState } from 'react'
+import { CustomColorPicker } from '@rentnerkev/picker'
 
-<CustomColorPicker
-    id="brand-color"
-    name="brandColor"
-    value={color}
-    onValueChange={setColor}
-    label="Markenfarbe"
-    description="Wird für Buttons und Hervorhebungen verwendet."
-    error={serverError}
-    triggerRef={pickerTriggerRef}
-    aria-describedby="brand-color-help"
-/>
+export function AccessiblePicker() {
+    const [color, setColor] = useState('#13ecd6')
+    const triggerRef = useRef<HTMLButtonElement>(null)
+
+    return (
+        <CustomColorPicker
+            id="accent-color"
+            name="accentColor"
+            value={color}
+            onValueChange={setColor}
+            label="Accent color"
+            description="Used for buttons and highlighted content."
+            triggerRef={triggerRef}
+            locale="en"
+        />
+    )
+}
 ```
 
-## API-Dokumentation
+## API
 
-### `CustomColorPicker`-Props
+### `CustomColorPicker` props
 
-| Prop               | Typ                          | Standard       | Beschreibung                                     |
-| ------------------ | ---------------------------- | -------------- | ------------------------------------------------ |
-| `id`               | `string`                     | generiert      | Eindeutige ID für den sichtbaren Trigger.        |
-| `name`             | `string`                     | -              | Name für Formular-Submit und native Validierung. |
-| `value`            | `string`                     | -              | Aktueller Farbwert als HEX oder RGB.             |
-| `onValueChange`    | `(value: string) => void`    | -              | Callback bei gültiger Farbänderung.              |
-| `onValidityChange` | `(isValid: boolean) => void` | -              | Meldet Wechsel der aktuellen Entwurfsvalidität.  |
-| `required`         | `boolean`                    | `false`        | Aktiviert Pflichtfeld-Validierung.               |
-| `disabled`         | `boolean`                    | `false`        | Deaktiviert Eingabe, Picker und Presets.         |
-| `readOnly`         | `boolean`                    | `false`        | Verhindert Änderungen, behält den Formularwert.  |
-| `label`            | `ReactNode`                  | -              | Sichtbares Label des Feldes.                     |
-| `description`      | `ReactNode`                  | -              | Hilfetext mit automatischer ARIA-Verknüpfung.    |
-| `error`            | `string \| null`             | `undefined`    | Kontrollierter externer Validierungsfehler.      |
-| `triggerRef`       | `Ref<HTMLButtonElement>`     | -              | Ref auf den sichtbaren, fokussierbaren Trigger.  |
-| `aria-*`           | `string`                     | -              | Zusätzliche zugängliche Beschriftungsreferenzen. |
-| `placeholder`      | `string`                     | `#13ecd6`      | Platzhalter im Textfeld.                         |
-| `format`           | `'hex' \| 'rgb'`             | `hex`          | Ausgabeformat für neue Werte.                    |
-| `presets`          | `string[]`                   | Standardfarben | Farben für Schnell-Auswahl.                      |
-| `showInput`        | `boolean`                    | `true`         | Zeigt das Textfeld neben dem Farbfeld.           |
-| `showPresets`      | `boolean`                    | `true`         | Zeigt Preset-Farben unterhalb der Eingabe.       |
-| `icon`             | `ReactNode`                  | `Palette`      | Optionales Icon links in der Komponente.         |
-| `className`        | `string`                     | `w-full`       | Klassen für den äußeren Container.               |
-| `customDesign`     | `CustomColorPickerDesign`    | -              | Objekt zur individuellen Gestaltung.             |
-| `locale`           | `'de' \| 'en'`               | `'de'`         | Sprache der Standard- und ARIA-Texte.            |
-| `messages`         | `Partial<PickerMessages>`    | -              | Überschreibt einzelne Standard- und ARIA-Texte.  |
+| Prop               | Type                         | Default         | Description                                             |
+| ------------------ | ---------------------------- | --------------- | ------------------------------------------------------- |
+| `id`               | `string`                     | generated       | Unique ID for the visible trigger.                      |
+| `name`             | `string`                     | -               | Native form field name.                                 |
+| `value`            | `string`                     | -               | Controlled HEX or RGB color.                            |
+| `onValueChange`    | `(value: string) => void`    | -               | Receives normalized colors or an optional empty value.  |
+| `onValidityChange` | `(isValid: boolean) => void` | -               | Reports initial validity and subsequent changes.        |
+| `required`         | `boolean`                    | `false`         | Enables required-field validation.                      |
+| `disabled`         | `boolean`                    | `false`         | Disables the input, picker, presets, and validation.    |
+| `readOnly`         | `boolean`                    | `false`         | Prevents changes while retaining the form value.        |
+| `label`            | `ReactNode`                  | -               | Visible field label.                                    |
+| `description`      | `ReactNode`                  | -               | Supporting text linked through ARIA.                    |
+| `error`            | `string \| null`             | `undefined`     | Controlled external validation message.                 |
+| `triggerRef`       | `Ref<HTMLButtonElement>`     | -               | Ref for the visible, focusable trigger.                 |
+| `aria-*`           | `string`                     | -               | Additional accessible names and description references. |
+| `placeholder`      | `string`                     | `#13ecd6`       | Text-field placeholder.                                 |
+| `format`           | `'hex' \| 'rgb'`             | `'hex'`         | Output format for new values.                           |
+| `presets`          | `string[]`                   | built-in colors | Colors offered for quick selection.                     |
+| `showInput`        | `boolean`                    | `true`          | Shows the text input beside the preview.                |
+| `showPresets`      | `boolean`                    | `true`          | Shows preset colors below the input.                    |
+| `icon`             | `ReactNode`                  | `Palette`       | Icon rendered at the start of the trigger.              |
+| `className`        | `string`                     | `w-full`        | Additional Tailwind classes for the outer container.    |
+| `customDesign`     | `CustomColorPickerDesign`    | -               | Tailwind class overrides for individual visual parts.   |
+| `locale`           | `'de' \| 'en'`               | `'de'`          | Selects the default message catalog.                    |
+| `messages`         | `Partial<PickerMessages>`    | -               | Overrides individual messages and ARIA text.            |
 
-## Tastaturbedienung
+## Keyboard interaction
 
-Nach dem Öffnen erhält die Farbfläche den Fokus. Sie unterstützt folgende
-Tasten:
+Opening the picker focuses the color area. It supports:
 
-| Taste                       | Wirkung                                        |
-| --------------------------- | ---------------------------------------------- |
-| `Pfeil links` / `rechts`    | Sättigung um einen Schritt verringern/erhöhen  |
-| `Pfeil hoch` / `runter`     | Helligkeit um einen Schritt erhöhen/verringern |
-| `Umschalt` + Pfeiltaste     | Änderung in Zehnerschritten                    |
-| `Bild hoch` / `Bild runter` | Helligkeit um zehn Schritte ändern             |
-| `Pos1` / `Ende`             | Minimale beziehungsweise maximale Sättigung    |
-| `Escape`                    | Picker schließen und Trigger fokussieren       |
+| Key                          | Behavior                                               |
+| ---------------------------- | ------------------------------------------------------ |
+| `Arrow Left` / `Arrow Right` | Decrease or increase saturation by one step.           |
+| `Arrow Up` / `Arrow Down`    | Increase or decrease brightness by one step.           |
+| `Shift` + an arrow key       | Apply the corresponding change in ten-step increments. |
+| `Page Up` / `Page Down`      | Change brightness by ten steps.                        |
+| `Home` / `End`               | Set minimum or maximum saturation.                     |
+| `Escape`                     | Close the picker and return focus to the trigger.      |
 
-Der Farbton-Regler verwendet zusätzlich die native Tastaturbedienung eines
-HTML-Range-Inputs mit Einerschritten.
+The hue control also supports the native keyboard behavior of an HTML range input in one-step increments.
 
-## CSS-Integration
+## Tailwind CSS
 
-Die Bibliothek liefert einen eigenen Tailwind-Einstieg. Importiere ihn nach
-Tailwind CSS in deine Haupt-CSS-Datei:
+Import the package entry after Tailwind CSS in your application stylesheet:
 
 ```css
 @import 'tailwindcss';
 @import '@rentnerkev/picker/tailwind.css';
 ```
 
-Der Paket-Einstieg scannt ausschließlich die veröffentlichten JavaScript-Dateien
-unter `dist`. Er stellt die gemeinsamen Theme-Tokens `primary`, `primary-hover`,
-`background-dark`, `surface-dark`, `input-dark`, `border-dark`, `secondary-text`
-und `muted-foreground` bereit. Eigene Werte können danach mit einem weiteren
-`@theme`-Block überschrieben werden.
+The package entry scans only the published JavaScript under `dist` and provides the shared theme tokens `primary`, `primary-hover`, `background-dark`, `surface-dark`, `input-dark`, `border-dark`, `secondary-text`, and `muted-foreground`. Override them with a later `@theme` block when needed.
 
-## Entwicklung
+## Public entry points
+
+| Entry point                       | Purpose                                               |
+| --------------------------------- | ----------------------------------------------------- |
+| `@rentnerkev/picker`              | Component, color helpers, messages, and public types. |
+| `@rentnerkev/picker/picker`       | `CustomColorPicker` component module.                 |
+| `@rentnerkev/picker/color`        | Color parsing, conversion, and formatting helpers.    |
+| `@rentnerkev/picker/messages`     | Locale catalog, resolver, and message types.          |
+| `@rentnerkev/picker/types`        | Component, design, and color types.                   |
+| `@rentnerkev/picker/tailwind.css` | Tailwind source and shared theme tokens.              |
+| `@rentnerkev/picker/package.json` | Package metadata.                                     |
+
+## Development
 
 ```bash
 bun install
@@ -187,6 +198,8 @@ bun run verify
 bun run playground:dev
 ```
 
-`bun run verify` prüft Typen und öffentliche API-Fixtures, Oxlint, Oxfmt,
-Interaktionstests, den Paket-Build und den veröffentlichten Paketinhalt per Dry
-Run.
+`bun run verify` checks public API types, lint, formatting, interaction tests, the package build, and the published package contents.
+
+## License
+
+MIT

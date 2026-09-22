@@ -25,8 +25,8 @@
         "vite": "^8.2.1",
       },
       "peerDependencies": {
-        "react": "^19.2.8",
-        "react-dom": "^19.2.8",
+        "react": "^19.0.0",
+        "react-dom": "^19.0.0",
       },
     },
     "playground": {
