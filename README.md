@@ -2,6 +2,19 @@
 
 A controlled and accessible React color picker with presets, native form validation, localization, and Tailwind CSS styling.
 
+## Requirements
+
+Use React 19 with React DOM 19, an ESM-capable build, and Tailwind CSS 4 for
+the documented styling. Import this package's `tailwind.css` entry into your
+Tailwind stylesheet. It uses `@source` for published classes and `@theme` for
+global tokens such as `--color-primary`. Check for token name collisions with
+your app and override them in a later `@theme` block if needed.
+
+In a React Server Components app, import and render the picker from a module
+beginning with `'use client'`; define its state and callbacks there. See the
+[Tailwind directives](https://tailwindcss.com/docs/functions-and-directives)
+and [React client boundary](https://react.dev/reference/rsc/use-client) guides.
+
 ## Installation
 
 Install the package with npm:
