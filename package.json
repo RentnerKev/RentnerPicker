@@ -1,6 +1,6 @@
 {
     "name": "@rentnerkev/picker",
-    "version": "2.0.1",
+    "version": "2.0.2",
     "description": "A controlled, accessible React color picker with presets and validation.",
     "author": "RentnerKev",
     "license": "MIT",
