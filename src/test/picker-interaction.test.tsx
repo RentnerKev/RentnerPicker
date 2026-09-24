@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, test } from 'bun:test'
+import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { useState } from 'react'
 import {
     cleanup,
@@ -48,6 +48,53 @@ describe('picker interactions', () => {
         fireEvent.blur(input)
 
         expect(valueChanges).toEqual(['#aabbcc'])
+    })
+
+    test('forwards blur from the visible field trigger', () => {
+        const onBlur = mock(() => undefined)
+
+        render(
+            <CustomColorPicker
+                value="#13ecd6"
+                onValueChange={() => undefined}
+                onBlur={onBlur}
+            />,
+        )
+
+        fireEvent.blur(screen.getByRole('button', { name: 'Farbe auswählen' }))
+
+        expect(onBlur).toHaveBeenCalledTimes(1)
+    })
+
+    test('does not blur the field when focus moves into the open picker', () => {
+        const onBlur = mock(() => undefined)
+
+        render(
+            <>
+                <CustomColorPicker
+                    value="#13ecd6"
+                    onValueChange={() => undefined}
+                    onBlur={onBlur}
+                />
+                <button type="button">Outside</button>
+            </>,
+        )
+
+        const trigger = screen.getByRole('button', {
+            name: 'Farbe auswählen',
+        })
+        fireEvent.click(trigger)
+
+        const colorArea = screen.getByRole('button', {
+            name: /Farbfläche/,
+        })
+        fireEvent.blur(trigger, { relatedTarget: colorArea })
+        expect(onBlur).not.toHaveBeenCalled()
+
+        fireEvent.blur(colorArea, {
+            relatedTarget: screen.getByRole('button', { name: 'Outside' }),
+        })
+        expect(onBlur).toHaveBeenCalledTimes(1)
     })
 
     test('keeps an invalid draft out of submitted form data', () => {

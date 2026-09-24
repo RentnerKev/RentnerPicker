@@ -4,6 +4,7 @@ import { CustomColorPicker } from '../../src'
 
 export function App() {
     const [brandColor, setBrandColor] = useState('#13ecd6')
+    const [brandBlurred, setBrandBlurred] = useState(false)
     const [accentColor, setAccentColor] = useState('#3f40ad')
     const [rgbColor, setRgbColor] = useState('rgb(34, 197, 94)')
     const [compactColor, setCompactColor] = useState('#ec4899')
@@ -35,9 +36,13 @@ export function App() {
                         name="brandColor"
                         value={brandColor}
                         onValueChange={setBrandColor}
+                        onBlur={() => setBrandBlurred(true)}
                         required
                         icon={<Brush className="h-5 w-5" />}
                     />
+                    <output data-testid="brand-blurred" className="sr-only">
+                        {String(brandBlurred)}
+                    </output>
 
                     <CustomColorPicker
                         id="accent-color"
