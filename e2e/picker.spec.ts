@@ -23,6 +23,23 @@ test.describe('picker playground', () => {
         await expect(trigger).toBeFocused()
     })
 
+    test('reports field blur after focus leaves the portal', async ({
+        page,
+    }) => {
+        await page.goto('/')
+
+        const blurred = page.getByTestId('brand-blurred')
+        const trigger = page
+            .getByRole('button', { name: 'Farbe auswählen' })
+            .first()
+        await trigger.click()
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await expect(blurred).toHaveText('false')
+
+        await page.getByRole('button', { name: 'Farben speichern' }).focus()
+        await expect(blurred).toHaveText('true')
+    })
+
     test('exposes preset state and field metadata', async ({ page }) => {
         await page.goto('/')
 

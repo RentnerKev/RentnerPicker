@@ -1,8 +1,8 @@
 import { AlertCircle, Palette, Pipette, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { useId } from 'react'
+import { useId, type FocusEvent } from 'react'
 import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.js'
-import { resolvePickerMessages } from '../i18n.js'
+import { usePickerDefaults, usePickerMessages } from '../PickerProvider.js'
 import type { CustomColorPickerProps } from '../types.js'
 import { mergeAriaIds } from '../field.js'
 import { toPickerHex } from '../color.js'
@@ -27,6 +27,7 @@ export function CustomColorPicker({
     required = false,
     disabled = false,
     readOnly = false,
+    onBlur,
     label,
     description,
     error,
@@ -42,10 +43,11 @@ export function CustomColorPicker({
     icon,
     className = 'w-full',
     customDesign,
-    locale = 'de',
+    locale: providedLocale,
     messages: providedMessages,
     ...ariaProps
 }: CustomColorPickerProps) {
+    const defaults = usePickerDefaults()
     const generatedId = useId()
     const fieldId = id ?? `color-picker-${generatedId}`
     const hasLabel = label !== undefined && label !== null && label !== false
@@ -56,7 +58,7 @@ export function CustomColorPicker({
     const labelId = hasLabel ? `${fieldId}-label` : undefined
     const descriptionId = hasDescription ? `${fieldId}-description` : undefined
     const errorId = `${fieldId}-error`
-    const messages = resolvePickerMessages(locale, providedMessages)
+    const messages = usePickerMessages(providedLocale, providedMessages)
     const {
         ref: {
             colorAreaRef,
@@ -103,10 +105,26 @@ export function CustomColorPicker({
         descriptionText: 'text-gray-400',
         iconColor: 'text-gray-500',
         iconFocus: 'group-focus-within:text-primary',
+        hoverText: 'hover:text-white',
         previewBorder: 'border-border-dark',
         presetBorder: 'border-border-dark',
         presetActiveBorder: 'ring-primary border-primary',
+        ...defaults.customDesign,
         ...customDesign,
+    }
+
+    function handleFieldBlur(event: FocusEvent<HTMLElement>) {
+        const nextTarget = event.relatedTarget
+
+        if (
+            nextTarget instanceof Node &&
+            (rootRef.current?.contains(nextTarget) ||
+                popupRef.current?.contains(nextTarget))
+        ) {
+            return
+        }
+
+        onBlur?.(event)
     }
 
     const activeColor = toPickerHex(state.safeValue).toLowerCase()
@@ -143,7 +161,7 @@ export function CustomColorPicker({
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
                                 disabled={disabled || readOnly}
-                                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+                                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
                                 aria-label={messages.eyeDropper}
                             >
                                 <Pipette className="h-4 w-4" />
@@ -153,7 +171,7 @@ export function CustomColorPicker({
                             type="button"
                             onClick={handler.handleClosePicker}
                             disabled={disabled || readOnly}
-                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} transition-colors hover:${design.text} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
                             aria-label={messages.closePicker}
                         >
                             <X className="h-4 w-4" />
@@ -214,7 +232,11 @@ export function CustomColorPicker({
         ) : null
 
     return (
-        <div ref={rootRef} className={`group relative ${className}`}>
+        <div
+            ref={rootRef}
+            onBlurCapture={handleFieldBlur}
+            className={`group relative ${className}`}
+        >
             {hasLabel && (
                 <label
                     id={labelId}
