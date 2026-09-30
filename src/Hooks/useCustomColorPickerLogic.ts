@@ -40,6 +40,26 @@ interface EyeDropperWindow extends Window {
     EyeDropper?: EyeDropperConstructor
 }
 
+function getFormSubmitter(
+    form: HTMLFormElement,
+    submitter: HTMLElement | null,
+) {
+    if (submitter?.tagName === 'BUTTON') {
+        const button = submitter as HTMLButtonElement
+        return button.form === form && button.type === 'submit' ? button : null
+    }
+
+    if (submitter?.tagName === 'INPUT') {
+        const input = submitter as HTMLInputElement
+
+        return input.form === form && ['submit', 'image'].includes(input.type)
+            ? input
+            : null
+    }
+
+    return null
+}
+
 function assignRef<Element>(
     ref: Ref<Element> | undefined,
     value: Element | null,
@@ -76,6 +96,14 @@ function isSameColorValue(left: string, right: string) {
     return normalizedLeft !== null && normalizedLeft === normalizeColor(right)
 }
 
+function getCommittedValue(value: string, format: 'hex' | 'rgb') {
+    if (!value.trim()) {
+        return ''
+    }
+
+    return formatColor(toPickerHex(value), format)
+}
+
 export default function useCustomColorPickerLogic({
     value,
     onValueChange,
@@ -103,6 +131,28 @@ export default function useCustomColorPickerLogic({
 }) {
     const safeValue = value !== undefined && value !== null ? String(value) : ''
     const [draftValue, setDraftValue] = useState(safeValue)
+    const currentStateRef = useRef<{
+        draftValue: string
+        safeValue: string
+        required: boolean | undefined
+        format: 'hex' | 'rgb'
+        messages: PickerMessages
+        externalError: string | null | undefined
+        disabled: boolean
+        readOnly: boolean
+        commitColor: (nextValue: string) => void
+    }>({
+        draftValue,
+        safeValue,
+        required,
+        format,
+        messages,
+        externalError,
+        disabled,
+        readOnly,
+        commitColor: () => undefined,
+    })
+
     const [previousSafeValue, setPreviousSafeValue] = useState(safeValue)
     const [isTouched, setIsTouched] = useState(false)
     const [isOpen, setIsOpen] = useState(false)
@@ -119,6 +169,12 @@ export default function useCustomColorPickerLogic({
     const validationInputRef = useRef<HTMLInputElement>(null)
     const onValidityChangeRef = useRef(onValidityChange)
     const previousValidityRef = useRef<boolean | undefined>(undefined)
+    const replayingSubmitRef = useRef(false)
+    const pendingSubmitCountRef = useRef(0)
+    const pendingSubmitCommitRef = useRef<{
+        baseValue: string
+        nextValue: string
+    } | null>(null)
     const [pendingValueChange, setPendingValueChange] = useState<{
         baseValue: string
         nextValue: string
@@ -228,85 +284,303 @@ export default function useCustomColorPickerLogic({
     }, [hasValidityChangeHandler, isValid])
 
     useEffect(() => {
-        validationInputRef.current?.setCustomValidity(
-            disabled ? '' : error || '',
-        )
-    }, [disabled, error])
-
-    useEffect(() => {
         const input = validationInputRef.current
-        const form = input?.form
 
-        if (!input || !form) {
+        if (!input) {
             return
         }
 
         const currentInput = input
+        const ownerDocument = input.ownerDocument
 
-        function handleFormSubmit() {
-            if (currentInput.validity.valid) {
-                setIsTouched(false)
+        function handleFormSubmit(event: SubmitEvent) {
+            const currentForm = currentInput.form
+
+            if (!currentForm || event.target !== currentForm) {
+                return
+            }
+
+            if (replayingSubmitRef.current) {
+                replayingSubmitRef.current = false
+                if (currentInput.validity.valid) {
+                    setIsTouched(false)
+                }
+                return
+            }
+
+            if (event.defaultPrevented) {
+                return
+            }
+
+            const currentState = currentStateRef.current
+            const submitter = getFormSubmitter(currentForm, event.submitter)
+            const skipNativeValidation =
+                currentForm.noValidate || Boolean(submitter?.formNoValidate)
+            const nextInternalError = getColorError(
+                currentState.draftValue,
+                currentState.required,
+                currentState.messages,
+            )
+
+            if (currentState.disabled || currentState.readOnly) {
+                if (currentInput.validity.valid) {
+                    setIsTouched(false)
+                }
+                return
+            }
+
+            if (currentState.externalError && !skipNativeValidation) {
+                event.preventDefault()
+                event.stopPropagation()
+                event.stopImmediatePropagation()
+                setIsTouched(true)
+                triggerRef.current?.focus()
+                return
+            }
+
+            if (nextInternalError) {
+                if (skipNativeValidation) {
+                    if (currentInput.validity.valid) {
+                        setIsTouched(false)
+                    }
+                    return
+                }
+
+                if (
+                    currentState.externalError === null ||
+                    currentState.externalError === ''
+                ) {
+                    if (currentInput.validity.valid) {
+                        setIsTouched(false)
+                    }
+                    return
+                }
+
+                event.preventDefault()
+                event.stopPropagation()
+                event.stopImmediatePropagation()
+                setIsTouched(true)
+                triggerRef.current?.focus()
+                return
+            }
+
+            const nextValue = getCommittedValue(
+                currentState.draftValue,
+                currentState.format,
+            )
+            const currentValue = currentState.safeValue
+
+            if (isSameColorValue(currentValue, nextValue)) {
+                if (currentInput.validity.valid) {
+                    setIsTouched(false)
+                }
+                setDraftValue(currentValue)
+                return
+            }
+
+            event.preventDefault()
+            event.stopPropagation()
+            event.stopImmediatePropagation()
+
+            const originalSubmitter = event.submitter
+            pendingSubmitCountRef.current += 1
+
+            // A new task lets React commit accepted values and the browser leave
+            // its native submission algorithm. Keep each attempt alive even if
+            // onValueChange removes this picker from the remaining form.
+            setTimeout(() => {
+                try {
+                    if (!currentForm.isConnected) {
+                        return
+                    }
+
+                    replayingSubmitRef.current = true
+                    const replaySubmitter = getFormSubmitter(
+                        currentForm,
+                        originalSubmitter,
+                    )
+
+                    if (
+                        skipNativeValidation &&
+                        !currentForm.noValidate &&
+                        !replaySubmitter?.formNoValidate
+                    ) {
+                        currentForm.noValidate = true
+
+                        try {
+                            currentForm.requestSubmit(
+                                replaySubmitter ?? undefined,
+                            )
+                        } finally {
+                            currentForm.noValidate = false
+                        }
+                    } else {
+                        currentForm.requestSubmit(replaySubmitter ?? undefined)
+                    }
+                } finally {
+                    replayingSubmitRef.current = false
+                    pendingSubmitCountRef.current -= 1
+
+                    if (pendingSubmitCountRef.current === 0) {
+                        pendingSubmitCommitRef.current = null
+                    }
+                }
+            }, 0)
+
+            const pendingCommit = pendingSubmitCommitRef.current
+
+            if (
+                !pendingCommit ||
+                !isSameColorValue(pendingCommit.baseValue, currentValue) ||
+                !isSameColorValue(pendingCommit.nextValue, nextValue)
+            ) {
+                pendingSubmitCommitRef.current = {
+                    baseValue: currentValue,
+                    nextValue,
+                }
+                currentState.commitColor(currentState.draftValue)
             }
         }
 
-        form.addEventListener('submit', handleFormSubmit)
+        ownerDocument.addEventListener('submit', handleFormSubmit, true)
 
         return () => {
-            form.removeEventListener('submit', handleFormSubmit)
+            ownerDocument.removeEventListener('submit', handleFormSubmit, true)
         }
     }, [])
 
-    function commitHex(
-        nextHex: string,
-        nextHsvColor = getHsvFromValue(nextHex),
-    ) {
-        if (disabled || readOnly) return
+    const commitHex = useCallback(
+        (nextHex: string, nextHsvColor = getHsvFromValue(nextHex)) => {
+            if (disabled || readOnly) return
 
-        const nextValue = formatColor(nextHex, format)
-        setPendingValueChange({
-            baseValue: safeValue,
-            nextValue,
-            nextHsvColor,
-            reconciled: false,
-        })
-        setHsvColor(nextHsvColor)
-        setDraftValue(nextValue)
-        onValueChange(nextValue)
-    }
+            const nextValue = formatColor(nextHex, format)
+            setPendingValueChange({
+                baseValue: safeValue,
+                nextValue,
+                nextHsvColor,
+                reconciled: false,
+            })
+            setHsvColor(nextHsvColor)
+            setDraftValue(nextValue)
+            onValueChange(nextValue)
+        },
+        [disabled, format, onValueChange, readOnly, safeValue],
+    )
 
     function commitHsvColor(nextHsvColor: HsvColor) {
         commitHex(rgbToHex(hsvToRgb(nextHsvColor)), nextHsvColor)
     }
 
-    function commitColor(nextValue: string) {
-        if (disabled || readOnly) return
+    const commitColor = useCallback(
+        (nextValue: string) => {
+            if (disabled || readOnly) return
 
-        const nextInternalError = getColorError(nextValue, required, messages)
-        setDraftValue(nextValue)
+            const nextInternalError = getColorError(
+                nextValue,
+                required,
+                messages,
+            )
+            setDraftValue(nextValue)
 
-        if (nextInternalError) {
-            setIsTouched(true)
-            return
-        }
+            if (nextInternalError) {
+                setIsTouched(true)
+                return
+            }
 
-        if (!nextValue.trim()) {
-            setDraftValue('')
-            setPendingValueChange({
-                baseValue: safeValue,
-                nextValue: '',
-                nextHsvColor: getHsvFromValue(''),
-                reconciled: false,
-            })
-            onValueChange('')
-            return
-        }
+            if (!nextValue.trim()) {
+                setDraftValue('')
 
-        commitHex(toPickerHex(nextValue))
-    }
+                if (safeValue === '') {
+                    setHsvColor(getHsvFromValue(''))
+                    return
+                }
+
+                setPendingValueChange({
+                    baseValue: safeValue,
+                    nextValue: '',
+                    nextHsvColor: getHsvFromValue(''),
+                    reconciled: false,
+                })
+                onValueChange('')
+                return
+            }
+
+            const nextHex = toPickerHex(nextValue)
+            const formattedValue = formatColor(nextHex, format)
+
+            if (isSameColorValue(safeValue, formattedValue)) {
+                setDraftValue(safeValue)
+                setHsvColor(getHsvFromValue(safeValue))
+                return
+            }
+
+            commitHex(nextHex)
+        },
+        [
+            commitHex,
+            disabled,
+            format,
+            messages,
+            onValueChange,
+            readOnly,
+            required,
+            safeValue,
+        ],
+    )
+
+    const setValidationInputRef = useCallback(
+        (node: HTMLInputElement | null) => {
+            validationInputRef.current = node
+
+            if (!node) {
+                return
+            }
+
+            currentStateRef.current = {
+                draftValue,
+                safeValue,
+                required,
+                format,
+                messages,
+                externalError,
+                disabled,
+                readOnly,
+                commitColor,
+            }
+            node.value = draftValue
+            node.setCustomValidity(disabled ? '' : error || '')
+        },
+        [
+            commitColor,
+            disabled,
+            draftValue,
+            error,
+            externalError,
+            format,
+            messages,
+            readOnly,
+            required,
+            safeValue,
+        ],
+    )
 
     function handleTextChange(event: ChangeEvent<HTMLInputElement>) {
         if (disabled || readOnly) return
-        setDraftValue(event.target.value)
+
+        const nextValue = event.target.value
+        currentStateRef.current.draftValue = nextValue
+        const validationInput = validationInputRef.current
+        const nextError =
+            externalError !== undefined
+                ? externalError
+                : getColorError(nextValue, required, messages)
+
+        setDraftValue(nextValue)
+
+        if (validationInput) {
+            validationInput.value = nextValue
+            validationInput.setCustomValidity(disabled ? '' : nextError || '')
+        }
     }
 
     function handleTextBlur() {
@@ -499,7 +773,7 @@ export default function useCustomColorPickerLogic({
             rootRef: overlay.ref.rootRef,
             setTriggerRef,
             triggerRef,
-            validationInputRef,
+            setValidationInputRef,
         },
         handler: {
             handleClosePicker,

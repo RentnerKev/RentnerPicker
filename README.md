@@ -65,6 +65,23 @@ If the parent keeps the previous value after a valid change, the picker returns
 to that controlled color. Invalid text drafts remain editable and do not replace
 the submitted value.
 
+Typing updates a draft. A valid draft is committed on blur or before the browser
+processes a submit event triggered by Enter, a submit button, or
+`form.requestSubmit()`.
+The form submits the new color only after the parent reflects the accepted
+controlled value. If the parent rejects the change, the previous controlled
+color remains the submitted value. Native validation still blocks required,
+invalid, and non-empty external errors before submission when validation is
+enabled. Passing `error={null}` clears picker validation errors; form-level or
+submit-button `noValidate` follows the browser's native validation bypass.
+Calling `form.submit()` directly bypasses the submit event and submits the
+current controlled value without committing the draft.
+
+The parent should reflect an accepted change in `value` as part of its
+`onValueChange` response. If `value` is still unchanged when the submission is
+reconciled, the change is treated as rejected; a later asynchronous prop update
+is a subsequent change and does not alter the submitted form data.
+
 ## Color utilities
 
 The public color helpers normalize and validate supported values without relying on the component:

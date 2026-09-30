@@ -65,7 +65,7 @@ export function CustomColorPicker({
             popupRef,
             rootRef,
             setTriggerRef,
-            validationInputRef,
+            setValidationInputRef,
         },
         handler,
         state,
@@ -279,9 +279,9 @@ export function CustomColorPicker({
             )}
 
             <input
-                ref={validationInputRef}
-                name={name}
-                value={state.safeValue}
+                ref={setValidationInputRef}
+                type="text"
+                value={state.draftValue}
                 onChange={() => undefined}
                 onInvalid={handler.handleInvalid}
                 required={required && error === undefined}
@@ -290,6 +290,13 @@ export function CustomColorPicker({
                 tabIndex={-1}
                 aria-hidden="true"
                 className="pointer-events-none absolute left-0 top-1/2 h-px w-px -translate-y-1/2 opacity-0"
+            />
+            <input
+                type="hidden"
+                name={name}
+                value={state.safeValue}
+                onChange={() => undefined}
+                disabled={disabled}
             />
 
             <div
