@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { CustomColorPicker } from '@rentnerkev/picker'
 
 export function App() {
@@ -21,6 +21,43 @@ export function App() {
     const [repeatedChanges, setRepeatedChanges] = useState(0)
     const [repeatedSubmissions, setRepeatedSubmissions] = useState<string[]>([])
     const [repeatedSubmitter, setRepeatedSubmitter] = useState('')
+    const [refMode, setRefMode] = useState<'cleanup' | 'legacy' | 'object'>(
+        'cleanup',
+    )
+    const [showRefPicker, setShowRefPicker] = useState(true)
+    const [refEventsText, setRefEventsText] = useState('')
+    const [objectRefStatus, setObjectRefStatus] = useState('detached')
+    const refEvents = useRef<string[]>([])
+    const objectTriggerRef = useRef<HTMLButtonElement>(null)
+    const cleanupTriggerRef = useCallback((node: HTMLButtonElement | null) => {
+        if (node) {
+            refEvents.current.push('cleanup:attached')
+            return () => {
+                refEvents.current.push('cleanup:cleanup')
+            }
+        }
+
+        refEvents.current.push('cleanup:null')
+    }, [])
+    const legacyTriggerRef = useCallback((node: HTMLButtonElement | null) => {
+        refEvents.current.push(node ? 'legacy:attached' : 'legacy:null')
+    }, [])
+
+    useEffect(() => {
+        setRefEventsText(refEvents.current.join(','))
+        setObjectRefStatus(
+            refMode === 'object' && showRefPicker && objectTriggerRef.current
+                ? 'attached'
+                : 'detached',
+        )
+    }, [refMode, showRefPicker])
+
+    const triggerRef =
+        refMode === 'cleanup'
+            ? cleanupTriggerRef
+            : refMode === 'legacy'
+              ? legacyTriggerRef
+              : objectTriggerRef
 
     return (
         <div className="bg-background-dark text-white">
@@ -278,6 +315,42 @@ export function App() {
                 onValueChange={() => undefined}
                 showInput={false}
             />
+
+            <section aria-label="Trigger ref lifecycle">
+                <div>
+                    <button type="button" onClick={() => setRefMode('legacy')}>
+                        Use legacy trigger ref
+                    </button>
+                    <button type="button" onClick={() => setRefMode('object')}>
+                        Use object trigger ref
+                    </button>
+                    <button type="button" onClick={() => setRefMode('cleanup')}>
+                        Use cleanup trigger ref
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setShowRefPicker(false)}
+                    >
+                        Remove ref target
+                    </button>
+                </div>
+                {showRefPicker && (
+                    <CustomColorPicker
+                        aria-label="Reference color"
+                        locale="en"
+                        value="#abcdef"
+                        onValueChange={() => undefined}
+                        showInput={false}
+                        triggerRef={triggerRef}
+                    />
+                )}
+                <output data-testid="trigger-ref-events">
+                    {refEventsText}
+                </output>
+                <output data-testid="trigger-object-ref-status">
+                    {objectRefStatus}
+                </output>
+            </section>
         </div>
     )
 }

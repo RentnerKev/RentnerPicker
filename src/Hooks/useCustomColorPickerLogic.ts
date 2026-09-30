@@ -11,7 +11,6 @@ import type {
     InvalidEvent,
     KeyboardEvent,
     PointerEvent,
-    Ref,
 } from 'react'
 import {
     clamp,
@@ -29,6 +28,7 @@ import { pickerMessageCatalog } from '../i18n.js'
 import type { PickerMessages } from '../i18n.js'
 import type { CustomColorPickerProps } from '../types.js'
 import usePickerOverlay from './usePickerOverlay.js'
+import useComposedRefs from './useComposedRefs.js'
 
 interface EyeDropperConstructor {
     new (): {
@@ -58,20 +58,6 @@ function getFormSubmitter(
     }
 
     return null
-}
-
-function assignRef<Element>(
-    ref: Ref<Element> | undefined,
-    value: Element | null,
-) {
-    if (typeof ref === 'function') {
-        ref(value)
-        return
-    }
-
-    if (ref) {
-        ref.current = value
-    }
 }
 
 function subscribeToEyeDropperSupport() {
@@ -190,13 +176,7 @@ export default function useCustomColorPickerLogic({
     const isValid = disabled || readOnly || !error
     const hasValidityChangeHandler = onValidityChange !== undefined
 
-    const setTriggerRef = useCallback(
-        (node: HTMLButtonElement | null) => {
-            triggerRef.current = node
-            assignRef(forwardedTriggerRef, node)
-        },
-        [forwardedTriggerRef],
-    )
+    const setTriggerRef = useComposedRefs(triggerRef, forwardedTriggerRef)
 
     const closePicker = useCallback((restoreFocus = false) => {
         setIsOpen(false)
