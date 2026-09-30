@@ -193,8 +193,8 @@ export function CustomColorPicker({
                     }}
                     aria-label={
                         messages.colorAreaValue?.(
-                            state.hsvColor.saturation,
-                            state.hsvColor.value,
+                            Math.round(state.hsvColor.saturation),
+                            Math.round(state.hsvColor.value),
                         ) ?? messages.colorArea
                     }
                     aria-description={messages.colorAreaInstructions}
@@ -205,11 +205,42 @@ export function CustomColorPicker({
                         aria-hidden="true"
                         className="absolute h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.65)]"
                         style={{
-                            left: `${state.hsvColor.saturation}%`,
-                            top: `${100 - state.hsvColor.value}%`,
+                            left: `${Math.round(state.hsvColor.saturation)}%`,
+                            top: `${100 - Math.round(state.hsvColor.value)}%`,
                         }}
                     />
                 </button>
+
+                <div className="mt-3 grid gap-2">
+                    <label className={`grid gap-1 text-xs ${design.text}`}>
+                        <span>{messages.saturation}</span>
+                        <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step="any"
+                            value={state.hsvColor.saturation}
+                            onChange={handler.handleSaturationChange}
+                            disabled={disabled || readOnly}
+                            aria-valuetext={`${Math.round(state.hsvColor.saturation)}%`}
+                            className="h-2 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        />
+                    </label>
+                    <label className={`grid gap-1 text-xs ${design.text}`}>
+                        <span>{messages.brightness}</span>
+                        <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step="any"
+                            value={state.hsvColor.value}
+                            onChange={handler.handleBrightnessChange}
+                            disabled={disabled || readOnly}
+                            aria-valuetext={`${Math.round(state.hsvColor.value)}%`}
+                            className="h-2 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        />
+                    </label>
+                </div>
 
                 <div className="mt-3 flex items-center gap-3">
                     <div
@@ -219,8 +250,8 @@ export function CustomColorPicker({
                     <input
                         type="range"
                         min={0}
-                        max={359}
-                        step={1}
+                        max={360}
+                        step="any"
                         value={state.hsvColor.hue}
                         onChange={handler.handleHueChange}
                         disabled={disabled || readOnly}

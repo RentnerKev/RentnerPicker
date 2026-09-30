@@ -192,7 +192,10 @@ export function AccessiblePicker() {
 
 ## Keyboard interaction
 
-Opening the picker focuses the color area. It supports:
+Opening the picker focuses the color area. The area supports pointer, touch,
+and keyboard input. Labeled saturation and brightness sliders provide an
+explicit semantic alternative and can be used with a keyboard or assistive
+technology. It supports:
 
 | Key                          | Behavior                                               |
 | ---------------------------- | ------------------------------------------------------ |
@@ -203,7 +206,8 @@ Opening the picker focuses the color area. It supports:
 | `Home` / `End`               | Set minimum or maximum saturation.                     |
 | `Escape`                     | Close the picker and return focus to the trigger.      |
 
-The hue control also supports the native keyboard behavior of an HTML range input in one-step increments.
+The hue, saturation, and brightness controls use native HTML range inputs and
+support their standard keyboard behavior.
 
 ## Tailwind CSS
 

@@ -37,19 +37,46 @@ export default function usePickerOverlay({
         }
 
         const rect = root.getBoundingClientRect()
+        const viewportWidth = Math.max(window.innerWidth, 0)
+        const viewportHeight = Math.max(window.innerHeight, 0)
+        const horizontalGutter = Math.min(8, viewportWidth / 2)
+        const verticalGutter = Math.min(8, viewportHeight / 2)
+        const gap = verticalGutter
         const width = Math.min(
             Math.max(rect.width, 288),
-            Math.max(window.innerWidth - 16, 0),
+            Math.max(viewportWidth - horizontalGutter * 2, 0),
         )
-        const maxLeft = Math.max(8, window.innerWidth - width - 8)
-        const left = clamp(rect.left, 8, maxLeft)
-        const spaceBelow = window.innerHeight - rect.bottom - 8
-        const spaceAbove = rect.top - 8
-        const openAbove = spaceBelow < 360 && spaceAbove > spaceBelow
-        const maxHeight = Math.max(openAbove ? spaceAbove : spaceBelow, 160)
-        const top = openAbove
-            ? Math.max(8, rect.top - Math.min(360, maxHeight) - 8)
-            : rect.bottom + 8
+        const maxLeft = Math.max(
+            horizontalGutter,
+            viewportWidth - horizontalGutter - width,
+        )
+        const left = clamp(rect.left, horizontalGutter, maxLeft)
+        const spaceBelow = Math.max(
+            0,
+            viewportHeight - verticalGutter - rect.bottom - gap,
+        )
+        const spaceAbove = Math.max(0, rect.top - verticalGutter - gap)
+        const availableHeight = Math.max(0, viewportHeight - verticalGutter * 2)
+        const openAbove =
+            spaceBelow < Math.min(360, availableHeight) &&
+            spaceAbove > spaceBelow
+        const preferredSpace = openAbove ? spaceAbove : spaceBelow
+        const coverTrigger = preferredSpace < Math.min(120, availableHeight)
+        const maxHeight = Math.min(
+            360,
+            coverTrigger ? availableHeight : preferredSpace,
+        )
+        const top = coverTrigger
+            ? verticalGutter
+            : openAbove
+              ? Math.max(verticalGutter, rect.top - gap - maxHeight)
+              : Math.min(
+                    rect.bottom + gap,
+                    Math.max(
+                        verticalGutter,
+                        viewportHeight - verticalGutter - maxHeight,
+                    ),
+                )
 
         setPickerPosition({ top, left, width, maxHeight })
     }, [])

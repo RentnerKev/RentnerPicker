@@ -23,6 +23,35 @@ test.describe('picker playground', () => {
         await expect(trigger).toBeFocused()
     })
 
+    test('fits a short narrow viewport and exposes semantic color sliders', async ({
+        page,
+    }) => {
+        await page.setViewportSize({ width: 240, height: 160 })
+        await page.goto('/')
+
+        const trigger = page
+            .getByRole('button', { name: 'Farbe auswählen' })
+            .first()
+        await trigger.scrollIntoViewIfNeeded()
+        await trigger.click()
+
+        const dialog = page.getByRole('dialog', { name: 'Farbe auswählen' })
+        await expect(dialog).toBeVisible()
+
+        const bounds = await dialog.boundingBox()
+        expect(bounds).not.toBeNull()
+        expect(bounds!.x).toBeGreaterThanOrEqual(0)
+        expect(bounds!.y).toBeGreaterThanOrEqual(0)
+        expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(240)
+        expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(160)
+        await expect(
+            dialog.getByRole('slider', { name: 'Sättigung' }),
+        ).toHaveCount(1)
+        await expect(
+            dialog.getByRole('slider', { name: 'Helligkeit' }),
+        ).toHaveCount(1)
+    })
+
     test('reports field blur after focus leaves the portal', async ({
         page,
     }) => {

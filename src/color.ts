@@ -119,9 +119,9 @@ export function rgbToHsv({ red, green, blue }: RgbColor): HsvColor {
     }
 
     return {
-        hue: Math.round(hue < 0 ? hue + 360 : hue),
-        saturation: max === 0 ? 0 : Math.round((delta / max) * 100),
-        value: Math.round(max * 100),
+        hue: hue < 0 ? hue + 360 : hue,
+        saturation: max === 0 ? 0 : (delta / max) * 100,
+        value: max * 100,
     }
 }
 

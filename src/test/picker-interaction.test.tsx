@@ -254,6 +254,43 @@ describe('picker interactions', () => {
         expect(changes).toHaveLength(9)
     })
 
+    test('exposes saturation and brightness as labeled sliders', () => {
+        const changes: string[] = []
+
+        render(
+            <CustomColorPicker
+                value="#abcdef"
+                onValueChange={(value) => changes.push(value)}
+                showPresets={false}
+            />,
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Farbe auswählen' }))
+
+        const saturation = screen.getByRole('slider', { name: 'Sättigung' })
+        const brightness = screen.getByRole('slider', { name: 'Helligkeit' })
+
+        expect(Number((saturation as HTMLInputElement).value)).toBeCloseTo(
+            (68 / 239) * 100,
+            8,
+        )
+        expect(Number((brightness as HTMLInputElement).value)).toBeCloseTo(
+            (239 / 255) * 100,
+            8,
+        )
+        expect(saturation.getAttribute('min')).toBe('0')
+        expect(saturation.getAttribute('max')).toBe('100')
+        expect(brightness.getAttribute('min')).toBe('0')
+        expect(brightness.getAttribute('max')).toBe('100')
+        expect(saturation.getAttribute('aria-valuetext')).toBe('28%')
+        expect(brightness.getAttribute('aria-valuetext')).toBe('94%')
+
+        fireEvent.change(saturation, { target: { value: '50.5' } })
+        expect(changes.at(-1)).not.toBe('#abcdef')
+        fireEvent.change(brightness, { target: { value: '72.25' } })
+        expect(changes).toHaveLength(2)
+    })
+
     test('lets an external error control reported validity', async () => {
         const validityChanges: boolean[] = []
 

@@ -9,6 +9,8 @@ export interface PickerMessages {
     colorAreaInstructions?: string
     colorAreaValue?: (saturation: number, value: number) => string
     hue: string
+    saturation: string
+    brightness: string
     selectColor: string
     presetColor: (color: string) => string
 }
@@ -20,10 +22,12 @@ const germanMessages: PickerMessages = {
     closePicker: 'Picker schließen',
     colorArea: 'Farbfläche',
     colorAreaInstructions:
-        'Pfeiltasten ändern Sättigung und Helligkeit. Mit Umschalt oder Bildtasten sind größere Schritte möglich.',
+        'Die Schieberegler ändern Sättigung und Helligkeit. In der Farbfläche ändern Pfeiltasten beide Werte; mit Umschalt oder Bildtasten sind größere Schritte möglich.',
     colorAreaValue: (saturation, value) =>
         `Farbfläche, Sättigung ${saturation} Prozent, Helligkeit ${value} Prozent`,
     hue: 'Farbton',
+    saturation: 'Sättigung',
+    brightness: 'Helligkeit',
     selectColor: 'Farbe auswählen',
     presetColor: (color) => `Farbe ${color} auswählen`,
 }
@@ -35,10 +39,12 @@ const englishMessages: PickerMessages = {
     closePicker: 'Close picker',
     colorArea: 'Color area',
     colorAreaInstructions:
-        'Arrow keys change saturation and brightness. Use Shift or Page keys for larger steps.',
+        'Use the sliders to change saturation and brightness. Arrow keys also change both values in the color area; use Shift or Page keys for larger steps.',
     colorAreaValue: (saturation, value) =>
         `Color area, saturation ${saturation} percent, brightness ${value} percent`,
     hue: 'Hue',
+    saturation: 'Saturation',
+    brightness: 'Brightness',
     selectColor: 'Select color',
     presetColor: (color) => `Select color ${color}`,
 }

@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { hexToRgb, isValidColor, normalizeColor } from '../index.js'
+import { getHsvFromValue, hsvToRgb, rgbToHex } from '../color.js'
 
 describe('color utilities', () => {
     test('normalizes supported HEX values to lowercase six-digit HEX', () => {
@@ -46,5 +47,14 @@ describe('color utilities', () => {
         })
         expect(hexToRgb('rgb(1, 2, 3)')).toBeNull()
         expect(hexToRgb('#ffff')).toBeNull()
+    })
+
+    test('preserves HSV precision so HEX colors round-trip without changes', () => {
+        const hsv = getHsvFromValue('#abcdef')
+
+        expect(hsv.hue).toBeCloseTo(210, 10)
+        expect(hsv.saturation).toBeCloseTo((68 / 239) * 100, 10)
+        expect(hsv.value).toBeCloseTo((239 / 255) * 100, 10)
+        expect(rgbToHex(hsvToRgb(hsv))).toBe('#abcdef')
     })
 })

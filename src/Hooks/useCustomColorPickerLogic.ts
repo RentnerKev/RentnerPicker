@@ -279,8 +279,8 @@ export default function useCustomColorPickerLogic({
         )
         const nextHsvColor = {
             ...hsvColor,
-            saturation: Math.round(nextSaturation),
-            value: Math.round(nextValue),
+            saturation: nextSaturation,
+            value: nextValue,
         }
 
         event.currentTarget.setPointerCapture(event.pointerId)
@@ -365,10 +365,28 @@ export default function useCustomColorPickerLogic({
 
         const nextHsvColor = {
             ...hsvColor,
-            hue: clamp(Number(event.target.value), 0, 359),
+            hue: clamp(Number(event.target.value), 0, 360),
         }
 
         commitHsvColor(nextHsvColor)
+    }
+
+    function handleSaturationChange(event: ChangeEvent<HTMLInputElement>) {
+        if (disabled || readOnly) return
+
+        commitHsvColor({
+            ...hsvColor,
+            saturation: clamp(Number(event.target.value), 0, 100),
+        })
+    }
+
+    function handleBrightnessChange(event: ChangeEvent<HTMLInputElement>) {
+        if (disabled || readOnly) return
+
+        commitHsvColor({
+            ...hsvColor,
+            value: clamp(Number(event.target.value), 0, 100),
+        })
     }
 
     function handlePresetClick(nextValue: string) {
@@ -428,6 +446,7 @@ export default function useCustomColorPickerLogic({
         },
         handler: {
             handleClosePicker,
+            handleBrightnessChange,
             handleColorAreaKeyDown,
             handleColorAreaPointer,
             handleColorAreaPointerMove,
@@ -435,6 +454,7 @@ export default function useCustomColorPickerLogic({
             handleHueChange,
             handleInvalid,
             handlePresetClick,
+            handleSaturationChange,
             handleTextBlur,
             handleTextChange,
             togglePicker,
