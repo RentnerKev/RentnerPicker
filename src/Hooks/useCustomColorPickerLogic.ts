@@ -18,6 +18,7 @@ import {
     formatColor,
     getHsvFromValue,
     hsvToRgb,
+    normalizeColor,
     rgbToHex,
     toPickerHex,
 } from '../color.js'
@@ -65,6 +66,16 @@ function getEyeDropperSupportServerSnapshot() {
     return false
 }
 
+function isSameColorValue(left: string, right: string) {
+    if (left === right) {
+        return true
+    }
+
+    const normalizedLeft = normalizeColor(left)
+
+    return normalizedLeft !== null && normalizedLeft === normalizeColor(right)
+}
+
 export default function useCustomColorPickerLogic({
     value,
     onValueChange,
@@ -108,13 +119,19 @@ export default function useCustomColorPickerLogic({
     const validationInputRef = useRef<HTMLInputElement>(null)
     const onValidityChangeRef = useRef(onValidityChange)
     const previousValidityRef = useRef<boolean | undefined>(undefined)
+    const [pendingValueChange, setPendingValueChange] = useState<{
+        baseValue: string
+        nextValue: string
+        nextHsvColor: HsvColor
+        reconciled: boolean
+    } | null>(null)
     const internalError = getColorError(draftValue, required, messages)
     const { error, hasError } = resolveFieldError(
         internalError,
         externalError,
         isTouched,
     )
-    const isValid = disabled || !error
+    const isValid = disabled || readOnly || !error
     const hasValidityChangeHandler = onValidityChange !== undefined
 
     const setTriggerRef = useCallback(
@@ -161,8 +178,35 @@ export default function useCustomColorPickerLogic({
 
     if (previousSafeValue !== safeValue) {
         setPreviousSafeValue(safeValue)
-        setDraftValue(safeValue)
-        setHsvColor(getHsvFromValue(safeValue))
+        if (
+            pendingValueChange &&
+            isSameColorValue(safeValue, pendingValueChange.nextValue)
+        ) {
+            setDraftValue(safeValue)
+            setHsvColor(pendingValueChange.nextHsvColor)
+            setPendingValueChange(null)
+        } else {
+            setPendingValueChange(null)
+            setDraftValue(safeValue)
+            setHsvColor(getHsvFromValue(safeValue))
+        }
+    } else if (pendingValueChange) {
+        if (isSameColorValue(safeValue, pendingValueChange.nextValue)) {
+            setHsvColor(pendingValueChange.nextHsvColor)
+            setPendingValueChange(null)
+        } else if (
+            isSameColorValue(safeValue, pendingValueChange.baseValue) &&
+            !pendingValueChange.reconciled
+        ) {
+            setDraftValue(safeValue)
+            setHsvColor(getHsvFromValue(safeValue))
+            setPendingValueChange({
+                ...pendingValueChange,
+                reconciled: true,
+            })
+        } else if (!isSameColorValue(safeValue, pendingValueChange.baseValue)) {
+            setPendingValueChange(null)
+        }
     }
 
     useEffect(() => {
@@ -219,6 +263,12 @@ export default function useCustomColorPickerLogic({
         if (disabled || readOnly) return
 
         const nextValue = formatColor(nextHex, format)
+        setPendingValueChange({
+            baseValue: safeValue,
+            nextValue,
+            nextHsvColor,
+            reconciled: false,
+        })
         setHsvColor(nextHsvColor)
         setDraftValue(nextValue)
         onValueChange(nextValue)
@@ -240,6 +290,13 @@ export default function useCustomColorPickerLogic({
         }
 
         if (!nextValue.trim()) {
+            setDraftValue('')
+            setPendingValueChange({
+                baseValue: safeValue,
+                nextValue: '',
+                nextHsvColor: getHsvFromValue(''),
+                reconciled: false,
+            })
             onValueChange('')
             return
         }

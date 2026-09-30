@@ -61,6 +61,10 @@ export function BrandColorPicker() {
 
 `onValueChange` receives valid, normalized colors, plus an empty string when an optional input is cleared. An invalid non-empty draft never overwrites the controlled value or native form value. `onValidityChange` reports the initial validity and then fires only when validity changes. It includes `required` and controlled external errors; disabled fields are valid because browsers exclude them from form submission.
 
+If the parent keeps the previous value after a valid change, the picker returns
+to that controlled color. Invalid text drafts remain editable and do not replace
+the submitted value.
+
 ## Color utilities
 
 The public color helpers normalize and validate supported values without relying on the component:
@@ -134,7 +138,9 @@ export function ProjectPickers() {
 
 The visible trigger supports labels, descriptions, controlled external errors, native validation, forwarded `aria-*` attributes, and focus control. A string passed to `error` overrides internal validation; `error={null}` explicitly clears external and native errors. Invalid form submission focuses the visible trigger. `onBlur` fires when focus leaves the complete picker field, including the trigger, text input, and open picker dialog; moving focus between those elements does not fire it.
 
-Disabled pickers are excluded from form submission. Read-only pickers prevent changes while retaining their submitted value.
+Disabled pickers are excluded from form submission. Read-only pickers prevent
+changes while retaining their submitted value. Read-only fields are excluded
+from native constraint validation, and `onValidityChange` reports them as valid.
 
 ```tsx
 import { useRef, useState } from 'react'

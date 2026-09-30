@@ -50,6 +50,59 @@ describe('picker interactions', () => {
         expect(valueChanges).toEqual(['#aabbcc'])
     })
 
+    test('keeps invalid drafts visible and reverts valid commits rejected by the controlled parent', async () => {
+        const valueChanges: string[] = []
+
+        render(
+            <form aria-label="color form">
+                <CustomColorPicker
+                    name="brandColor"
+                    value="#abcdef"
+                    onValueChange={(value) => valueChanges.push(value)}
+                />
+            </form>,
+        )
+
+        const input = screen.getByPlaceholderText('#13ecd6') as HTMLInputElement
+        const form = screen.getByRole('form') as HTMLFormElement
+
+        fireEvent.change(input, { target: { value: 'invalid' } })
+        expect(input.value).toBe('invalid')
+        fireEvent.blur(input)
+        expect(input.value).toBe('invalid')
+        expect(new FormData(form).get('brandColor')).toBe('#abcdef')
+
+        fireEvent.change(input, { target: { value: 'AbC' } })
+        fireEvent.blur(input)
+
+        await waitFor(() => expect(input.value).toBe('#abcdef'))
+        expect(valueChanges).toEqual(['#aabbcc'])
+        expect(new FormData(form).get('brandColor')).toBe('#abcdef')
+    })
+
+    test('reverts a rejected optional clear to the controlled value', async () => {
+        const valueChanges: string[] = []
+
+        render(
+            <form aria-label="color form">
+                <CustomColorPicker
+                    name="brandColor"
+                    value="#abcdef"
+                    onValueChange={(value) => valueChanges.push(value)}
+                />
+            </form>,
+        )
+
+        const input = screen.getByPlaceholderText('#13ecd6') as HTMLInputElement
+        const form = screen.getByRole('form') as HTMLFormElement
+        fireEvent.change(input, { target: { value: '' } })
+        fireEvent.blur(input)
+
+        await waitFor(() => expect(input.value).toBe('#abcdef'))
+        expect(valueChanges).toEqual([''])
+        expect(new FormData(form).get('brandColor')).toBe('#abcdef')
+    })
+
     test('forwards blur from the visible field trigger', () => {
         const onBlur = mock(() => undefined)
 
@@ -173,6 +226,35 @@ describe('picker interactions', () => {
         })
     })
 
+    test('reports read-only fields as valid when native forms exclude them from validation', () => {
+        const validityChanges: boolean[] = []
+
+        render(
+            <form aria-label="color form">
+                <CustomColorPicker
+                    name="brandColor"
+                    value=""
+                    onValueChange={() => undefined}
+                    onValidityChange={(isValid) =>
+                        validityChanges.push(isValid)
+                    }
+                    required
+                    readOnly
+                />
+            </form>,
+        )
+
+        const form = screen.getByRole('form') as HTMLFormElement
+        const validationInput = form.querySelector(
+            'input[name="brandColor"]',
+        ) as HTMLInputElement
+
+        expect(validationInput.willValidate).toBe(false)
+        expect(form.checkValidity()).toBe(true)
+        expect(new FormData(form).get('brandColor')).toBe('')
+        expect(validityChanges).toEqual([true])
+    })
+
     test('moves focus into the color area and restores it on Escape', async () => {
         const user = userEvent.setup()
 
@@ -204,13 +286,22 @@ describe('picker interactions', () => {
     test('supports precise and coarse keyboard changes in the color area', () => {
         const changes: string[] = []
 
-        render(
-            <CustomColorPicker
-                value="#808080"
-                onValueChange={(value) => changes.push(value)}
-                showPresets={false}
-            />,
-        )
+        function Harness() {
+            const [value, setValue] = useState('#808080')
+
+            return (
+                <CustomColorPicker
+                    value={value}
+                    onValueChange={(nextValue) => {
+                        changes.push(nextValue)
+                        setValue(nextValue)
+                    }}
+                    showPresets={false}
+                />
+            )
+        }
+
+        render(<Harness />)
 
         fireEvent.click(screen.getByRole('button', { name: 'Farbe auswählen' }))
 
@@ -252,6 +343,30 @@ describe('picker interactions', () => {
         fireEvent.keyDown(colorArea, { key: 'ArrowRight' })
         expect(marker.style.left).toBe('100%')
         expect(changes).toHaveLength(9)
+    })
+
+    test('marks equivalent short HEX and RGB presets as active', () => {
+        render(
+            <CustomColorPicker
+                value="#aabbcc"
+                onValueChange={() => undefined}
+                presets={['#abc', 'rgb(170, 187, 204)']}
+                showInput={false}
+            />,
+        )
+
+        expect(
+            screen
+                .getByRole('button', { name: 'Farbe #abc auswählen' })
+                .getAttribute('aria-pressed'),
+        ).toBe('true')
+        expect(
+            screen
+                .getByRole('button', {
+                    name: 'Farbe rgb(170, 187, 204) auswählen',
+                })
+                .getAttribute('aria-pressed'),
+        ).toBe('true')
     })
 
     test('exposes saturation and brightness as labeled sliders', () => {

@@ -5,7 +5,7 @@ import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.js'
 import { usePickerDefaults, usePickerMessages } from '../PickerProvider.js'
 import type { CustomColorPickerProps } from '../types.js'
 import { mergeAriaIds } from '../field.js'
-import { toPickerHex } from '../color.js'
+import { normalizeColor } from '../color.js'
 
 const defaultPresets = [
     '#13ecd6',
@@ -127,7 +127,7 @@ export function CustomColorPicker({
         onBlur?.(event)
     }
 
-    const activeColor = toPickerHex(state.safeValue).toLowerCase()
+    const activeColor = normalizeColor(state.safeValue)
     const pickerPopup =
         state.isOpen && !disabled && !readOnly ? (
             <div
@@ -402,8 +402,9 @@ export function CustomColorPicker({
             {showPresets && presets.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                     {presets.map((preset) => {
-                        const presetColor = preset.toLowerCase()
-                        const isActive = activeColor === presetColor
+                        const presetColor = normalizeColor(preset)
+                        const isActive =
+                            activeColor !== null && activeColor === presetColor
 
                         return (
                             <button
