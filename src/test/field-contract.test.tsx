@@ -66,7 +66,7 @@ describe('picker field contract', () => {
         expect(markup).toContain('aria-keyshortcuts="Alt+ArrowDown"')
     })
 
-    test('keeps a read-only trigger focusable and exposes its state', () => {
+    test('keeps a read-only trigger focusable and exposes supported state', () => {
         const markup = renderToStaticMarkup(
             createElement(CustomColorPicker, {
                 id: 'brand-color',
@@ -78,11 +78,26 @@ describe('picker field contract', () => {
         )
 
         expect(markup).toContain('id="brand-color"')
-        expect(markup).toContain('aria-readonly="true"')
-        expect(markup).not.toContain('aria-disabled="true"')
+        expect(markup).not.toContain('aria-readonly')
+        expect(markup).toContain('aria-disabled="true"')
         expect(markup).not.toContain(
             'id="brand-color" type="button" disabled=""',
         )
+    })
+
+    test('suppresses forwarded readonly state on its native trigger', () => {
+        const markup = renderToStaticMarkup(
+            createElement(CustomColorPicker, {
+                id: 'brand-color',
+                value: '#13ecd6',
+                onValueChange: () => undefined,
+                showInput: false,
+                'aria-readonly': true,
+            }),
+        )
+
+        expect(markup).not.toContain('aria-readonly')
+        expect(markup).not.toContain('aria-disabled="true"')
     })
 
     test('lets an explicit null error clear native required validation', () => {

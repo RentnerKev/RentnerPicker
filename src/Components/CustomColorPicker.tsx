@@ -328,11 +328,12 @@ export function CustomColorPicker({
                     disabled={disabled}
                     {...ariaProps}
                     aria-disabled={
-                        disabled || ariaProps['aria-disabled'] || undefined
+                        disabled ||
+                        readOnly ||
+                        ariaProps['aria-disabled'] ||
+                        undefined
                     }
-                    aria-readonly={
-                        readOnly || ariaProps['aria-readonly'] || undefined
-                    }
+                    aria-readonly={undefined}
                     aria-label={resolvedAriaLabel}
                     aria-labelledby={resolvedLabelledBy}
                     aria-describedby={resolvedDescribedBy}

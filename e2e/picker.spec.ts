@@ -2,6 +2,25 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 test.describe('picker playground', () => {
+    test('keeps a read-only trigger focusable with supported ARIA state', async ({
+        page,
+    }) => {
+        await page.goto('/?fixture=read-only')
+
+        const trigger = page.locator('#read-only-color')
+        await expect(trigger).toHaveAttribute('aria-disabled', 'true')
+        await expect(trigger).not.toHaveAttribute('aria-readonly')
+        await expect(trigger).not.toHaveAttribute('disabled')
+        await trigger.focus()
+        await expect(trigger).toBeFocused()
+
+        const results = await new AxeBuilder({ page }).analyze()
+        expect(results.violations).toEqual([])
+
+        await trigger.evaluate((element) => element.click())
+        await expect(page.getByRole('dialog')).toHaveCount(0)
+    })
+
     test('opens the portal dialog and restores focus after Escape', async ({
         page,
     }) => {
