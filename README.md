@@ -269,3 +269,13 @@ bun run playground:dev
 ## License
 
 MIT
+
+## Architecture
+
+Reusable picker UI lives in `src/shared/Picker/Components`, with its focused hooks in `src/shared/Picker/Hooks` and typed contracts in `src/shared/Picker/Types`. Public modules at the `src` root remain compatibility facades. UI-free color, selection, field, and message logic lives in `src/lib` under its domain. Tests are centralized in `src/tests`, mirroring the source domains; browser and compile-time contracts run separately.
+
+Public npm root, subpath, and type entry points retain their existing paths through compatibility facades. Internal code imports defining modules directly. No application routes, server stack, or additional dependencies are needed for these libraries.
+
+Pointer capture starts on pointerdown. Repeated coordinates skip layout reads until controlled values or relevant geometry invalidate them. Popup scrolling invalidates color-area coordinates without repositioning the anchor; ancestor scrolling, resize, and size observation refresh geometry. Latent HSV hue for black and gray remains independent of serialized color callbacks.
+
+Oxlint enables React and JSX accessibility rules across source, tests, tooling, and playground code. Four attribute-local compatibility comments preserve existing semantics: `prefer-tag-over-role` on the custom nonmodal dialog keeps hook-owned focus and Escape behavior; `role-supports-aria-props` preserves the existing `aria-description`, `aria-invalid`, and `aria-errormessage` field contracts. [WAI-ARIA 1.2 global states](https://www.w3.org/TR/wai-aria-1.2/#global_states) still lists the validation attributes (global use is deprecated, not prohibited); [WAI-ARIA 1.3 aria-description](https://www.w3.org/TR/wai-aria-1.3/#aria-description) defines accessible descriptions. These exceptions are per attribute, not file-wide disables or removal of existing checks. Browser focus, keyboard, native validation, and axe checks cover the preserved contract.

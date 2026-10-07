@@ -1,8 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { CustomColorPicker } from '../../src'
+import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker'
 import { App } from './App'
+// oxlint-disable-next-line import/no-unassigned-import -- The Vite entry deliberately loads the playground stylesheet.
 import './index.css'
+import { usePlaygroundRootLogic } from './Hooks/usePlaygroundRootLogic'
 
 function ReadOnlyPickerFixture() {
     return (
@@ -20,10 +22,15 @@ function ReadOnlyPickerFixture() {
     )
 }
 
-const fixture = new URLSearchParams(window.location.search).get('fixture')
+function PlaygroundRoot() {
+    const {
+        state: { readOnly },
+    } = usePlaygroundRootLogic()
+    return readOnly ? <ReadOnlyPickerFixture /> : <App />
+}
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        {fixture === 'read-only' ? <ReadOnlyPickerFixture /> : <App />}
+        <PlaygroundRoot />
     </React.StrictMode>,
 )

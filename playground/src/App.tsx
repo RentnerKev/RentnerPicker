@@ -1,22 +1,19 @@
-import React, { useState } from 'react'
+import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic'
 import { Brush, Copy, PaintBucket, Palette, Send } from 'lucide-react'
-import { CustomColorPicker } from '../../src'
+import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker'
 
 export function App() {
-    const [brandColor, setBrandColor] = useState('#13ecd6')
-    const [brandBlurred, setBrandBlurred] = useState(false)
-    const [accentColor, setAccentColor] = useState('#3f40ad')
-    const [rgbColor, setRgbColor] = useState('rgb(34, 197, 94)')
-    const [compactColor, setCompactColor] = useState('#ec4899')
-
-    function handleSubmit(event: React.FormEvent) {
-        event.preventDefault()
-        const data = { brandColor, accentColor, rgbColor, compactColor }
-        alert(
-            'Farben erfolgreich gespeichert:\n' + JSON.stringify(data, null, 2),
-        )
-    }
-
+    const {
+        state: {
+            brandColor,
+            brandBlurred,
+            accentColor,
+            rgbColor,
+            compactColor,
+        },
+        setter: { setBrandColor, setAccentColor, setRgbColor, setCompactColor },
+        handler: { handleSubmit, handleBrandBlur },
+    } = usePlaygroundLogic()
     return (
         <main className="relative min-h-screen p-6 md:p-10">
             <div className="glow-effect left-[20%] top-[20%]" />
@@ -36,7 +33,7 @@ export function App() {
                         name="brandColor"
                         value={brandColor}
                         onValueChange={setBrandColor}
-                        onBlur={() => setBrandBlurred(true)}
+                        onBlur={handleBrandBlur}
                         required
                         icon={<Brush className="h-5 w-5" />}
                     />
