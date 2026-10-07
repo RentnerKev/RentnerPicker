@@ -1,13 +1,19 @@
-export { CustomColorPicker } from './Components/CustomColorPicker.js'
-export { PickerProvider } from './PickerProvider.js'
-export { hexToRgb, isValidColor, normalizeColor } from './color.js'
-export { resolvePickerMessages, pickerMessageCatalog } from './i18n.js'
+export { CustomColorPicker } from './shared/Picker/Components/CustomColorPicker.js'
+export { PickerProvider } from './shared/Picker/Components/PickerProvider.js'
+export { hexToRgb, isValidColor, normalizeColor } from './lib/Color/color.js'
+export {
+    resolvePickerMessages,
+    pickerMessageCatalog,
+} from './lib/Messages/i18n.js'
 export type {
     ColorValidityChangeHandler,
     ColorFormat,
     CustomColorPickerDesign,
     CustomColorPickerProps,
     RgbColor,
-} from './types.js'
-export type { PickerProviderProps } from './PickerProvider.js'
-export type { PickerLocale, PickerMessages } from './types.js'
+} from './shared/Picker/Types/picker.types.js'
+export type { PickerProviderProps } from './shared/Picker/Components/PickerProvider.js'
+export type {
+    PickerLocale,
+    PickerMessages,
+} from './shared/Picker/Types/picker.types.js'
