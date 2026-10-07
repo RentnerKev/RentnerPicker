@@ -13,12 +13,14 @@ interface UsePickerOverlayOptions {
     initialFocusRef: RefObject<HTMLElement | null>
     isOpen: boolean
     onClose: (restoreFocus?: boolean) => void
+    onGeometryChange?: () => void
 }
 
 export default function usePickerOverlay({
     initialFocusRef,
     isOpen,
     onClose,
+    onGeometryChange,
 }: UsePickerOverlayOptions) {
     const rootRef = useRef<HTMLDivElement>(null)
     const popupRef = useRef<HTMLDivElement>(null)
@@ -78,7 +80,14 @@ export default function usePickerOverlay({
                     ),
                 )
 
-        setPickerPosition({ top, left, width, maxHeight })
+        setPickerPosition((previous) =>
+            previous.top === top &&
+            previous.left === left &&
+            previous.width === width &&
+            previous.maxHeight === maxHeight
+                ? previous
+                : { top, left, width, maxHeight },
+        )
     }, [])
 
     useEffect(() => {
@@ -106,19 +115,55 @@ export default function usePickerOverlay({
             }
         }
 
-        updatePickerPosition()
+        function handleGeometryChange() {
+            onGeometryChange?.()
+            updatePickerPosition()
+        }
+
+        function handleScroll(event: Event) {
+            const target = event.target
+            const root = rootRef.current
+            if (target instanceof Node && popupRef.current?.contains(target)) {
+                // Scrolling the popup moves the color area, but never the anchor.
+                onGeometryChange?.()
+                return
+            }
+            if (
+                target === window ||
+                target === document ||
+                (target instanceof Element && root && target.contains(root))
+            ) {
+                handleGeometryChange()
+            }
+        }
+
+        const observer =
+            typeof ResizeObserver === 'undefined'
+                ? undefined
+                : new ResizeObserver(handleGeometryChange)
+        if (rootRef.current) observer?.observe(rootRef.current)
+        if (initialFocusRef.current) observer?.observe(initialFocusRef.current)
+
+        handleGeometryChange()
         document.addEventListener('pointerdown', handlePointerDown)
         document.addEventListener('keydown', handleKeyDown)
-        window.addEventListener('resize', updatePickerPosition)
-        window.addEventListener('scroll', updatePickerPosition, true)
+        window.addEventListener('resize', handleGeometryChange)
+        window.addEventListener('scroll', handleScroll, true)
 
         return () => {
             document.removeEventListener('pointerdown', handlePointerDown)
             document.removeEventListener('keydown', handleKeyDown)
-            window.removeEventListener('resize', updatePickerPosition)
-            window.removeEventListener('scroll', updatePickerPosition, true)
+            window.removeEventListener('resize', handleGeometryChange)
+            window.removeEventListener('scroll', handleScroll, true)
+            observer?.disconnect()
         }
-    }, [initialFocusRef, isOpen, onClose, updatePickerPosition])
+    }, [
+        initialFocusRef,
+        isOpen,
+        onClose,
+        onGeometryChange,
+        updatePickerPosition,
+    ])
 
     return {
         ref: {

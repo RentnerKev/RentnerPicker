@@ -1,6 +1,7 @@
 import {
     useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -151,6 +152,13 @@ export default function useCustomColorPickerLogic({
         getHsvFromValue(safeValue),
     )
     const colorAreaRef = useRef<HTMLButtonElement>(null)
+    const currentHsvRef = useRef(hsvColor)
+    const requestedValueRef = useRef(safeValue)
+    const lastPointerRef = useRef<{
+        target: HTMLButtonElement
+        clientX: number
+        clientY: number
+    } | null>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
     const validationInputRef = useRef<HTMLInputElement>(null)
     const onValidityChangeRef = useRef(onValidityChange)
@@ -186,10 +194,31 @@ export default function useCustomColorPickerLogic({
         }
     }, [])
 
+    const invalidatePointer = useCallback(() => {
+        lastPointerRef.current = null
+    }, [])
+
+    useLayoutEffect(() => {
+        currentHsvRef.current = hsvColor
+        requestedValueRef.current =
+            pendingValueChange && !pendingValueChange.reconciled
+                ? pendingValueChange.nextValue
+                : safeValue
+    }, [hsvColor, pendingValueChange, safeValue])
+
+    useLayoutEffect(invalidatePointer, [
+        disabled,
+        invalidatePointer,
+        isOpen,
+        readOnly,
+        safeValue,
+    ])
+
     const overlay = usePickerOverlay({
         initialFocusRef: colorAreaRef,
         isOpen,
         onClose: closePicker,
+        onGeometryChange: invalidatePointer,
     })
 
     const selectedHex = useMemo(() => rgbToHex(hsvToRgb(hsvColor)), [hsvColor])
@@ -434,6 +463,20 @@ export default function useCustomColorPickerLogic({
             if (disabled || readOnly) return
 
             const nextValue = formatColor(nextHex, format)
+            const valueChanged = !isSameColorValue(
+                requestedValueRef.current,
+                nextValue,
+            )
+            currentHsvRef.current = nextHsvColor
+            if (!valueChanged) {
+                setHsvColor(nextHsvColor)
+                setDraftValue(nextValue)
+                setPendingValueChange((current) =>
+                    current ? { ...current, nextHsvColor } : null,
+                )
+                return
+            }
+            requestedValueRef.current = nextValue
             setPendingValueChange({
                 baseValue: safeValue,
                 nextValue,
@@ -448,6 +491,13 @@ export default function useCustomColorPickerLogic({
     )
 
     function commitHsvColor(nextHsvColor: HsvColor) {
+        const current = currentHsvRef.current
+        if (
+            current.hue === nextHsvColor.hue &&
+            current.saturation === nextHsvColor.saturation &&
+            current.value === nextHsvColor.value
+        )
+            return
         commitHex(rgbToHex(hsvToRgb(nextHsvColor)), nextHsvColor)
     }
 
@@ -569,8 +619,16 @@ export default function useCustomColorPickerLogic({
         commitColor(draftValue)
     }
 
-    function handleColorAreaPointer(event: PointerEvent<HTMLButtonElement>) {
+    function updateColorAreaPointer(event: PointerEvent<HTMLButtonElement>) {
         if (disabled || readOnly) return
+
+        const previous = lastPointerRef.current
+        if (
+            previous?.target === event.currentTarget &&
+            previous.clientX === event.clientX &&
+            previous.clientY === event.clientY
+        )
+            return
 
         const rect = event.currentTarget.getBoundingClientRect()
 
@@ -589,20 +647,31 @@ export default function useCustomColorPickerLogic({
             100,
         )
         const nextHsvColor = {
-            ...hsvColor,
+            ...currentHsvRef.current,
             saturation: nextSaturation,
             value: nextValue,
         }
 
-        event.currentTarget.setPointerCapture(event.pointerId)
+        lastPointerRef.current = {
+            target: event.currentTarget,
+            clientX: event.clientX,
+            clientY: event.clientY,
+        }
         commitHsvColor(nextHsvColor)
+    }
+
+    function handleColorAreaPointer(event: PointerEvent<HTMLButtonElement>) {
+        if (disabled || readOnly) return
+        invalidatePointer()
+        event.currentTarget.setPointerCapture(event.pointerId)
+        updateColorAreaPointer(event)
     }
 
     function handleColorAreaPointerMove(
         event: PointerEvent<HTMLButtonElement>,
     ) {
         if (event.buttons === 1) {
-            handleColorAreaPointer(event)
+            updateColorAreaPointer(event)
         }
     }
 

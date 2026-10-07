@@ -2,6 +2,77 @@ import { AxeBuilder } from '@axe-core/playwright'
 import { expect, test } from '@playwright/test'
 
 test.describe('picker playground', () => {
+    test('keeps native pointer capture while repeated drag coordinates skip layout reads', async ({
+        page,
+    }) => {
+        await page.goto('/')
+        await page
+            .getByRole('button', { name: 'Farbe auswählen' })
+            .first()
+            .click()
+        const area = page
+            .getByRole('dialog')
+            .getByRole('button', { name: /Farbfläche/ })
+        const bounds = (await area.boundingBox())!
+        const x = bounds.x + bounds.width / 2
+        const y = bounds.y + bounds.height / 2
+        await area.evaluate((element) =>
+            element.addEventListener(
+                'pointerdown',
+                (event) => {
+                    element.dataset.pointerId = String(event.pointerId)
+                },
+                { once: true },
+            ),
+        )
+        await page.mouse.move(x, y)
+        await page.mouse.down()
+        const pointerId = Number(await area.getAttribute('data-pointer-id'))
+        expect(
+            await area.evaluate(
+                (element, id) => element.hasPointerCapture(id),
+                pointerId,
+            ),
+        ).toBe(true)
+        const reads = await area.evaluate(
+            (element, coordinates) => {
+                let calls = 0
+                const original = element.getBoundingClientRect.bind(element)
+                element.getBoundingClientRect = () => {
+                    calls++
+                    return original()
+                }
+                for (let index = 0; index < 120; index++)
+                    element.dispatchEvent(
+                        new PointerEvent('pointermove', {
+                            bubbles: true,
+                            buttons: 1,
+                            pointerId: coordinates.pointerId,
+                            clientX: coordinates.x,
+                            clientY: coordinates.y,
+                        }),
+                    )
+                element.getBoundingClientRect = original
+                return calls
+            },
+            { x, y, pointerId },
+        )
+        expect(reads).toBeLessThanOrEqual(1)
+        expect(
+            await area.evaluate(
+                (element, id) => element.hasPointerCapture(id),
+                pointerId,
+            ),
+        ).toBe(true)
+        await page.mouse.up()
+        expect(
+            await area.evaluate(
+                (element, id) => element.hasPointerCapture(id),
+                pointerId,
+            ),
+        ).toBe(false)
+    })
+
     test('keeps a read-only trigger focusable with supported ARIA state', async ({
         page,
     }) => {
