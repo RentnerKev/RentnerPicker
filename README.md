@@ -17,9 +17,9 @@ Controlled React color picker with presets, HEX/RGB input, accessible controls, 
 Requires React 19, React DOM 19, and Tailwind CSS 4.
 
 ```bash
-bun add @rentnerkev/picker
-# npm alternative
 npm install @rentnerkev/picker
+# or with Bun
+bun add @rentnerkev/picker
 ```
 
 Import the package styles after Tailwind in your app stylesheet:
