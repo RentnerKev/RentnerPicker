@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test'
-import { hexToRgb, isValidColor, normalizeColor } from '../../../index.js'
+import {
+    hexToRgb,
+    isValidColor,
+    normalizeColor,
+} from '../../../lib/Color/color.ts'
 import {
     getHsvFromValue,
     hsvToRgb,
     rgbToHex,
-} from '../../../lib/Color/color.js'
+} from '../../../lib/Color/color.ts'
 
 describe('color utilities', () => {
     test('normalizes supported HEX values to lowercase six-digit HEX', () => {

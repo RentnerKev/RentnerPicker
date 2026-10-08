@@ -3,12 +3,12 @@ import {
     hexToRgb,
     isValidColor,
     normalizeColor,
-} from '../../index.js'
+} from '../../index.ts'
 import type {
     ColorValidityChangeHandler,
     CustomColorPickerProps,
     RgbColor,
-} from '../../index.js'
+} from '../../index.ts'
 
 const rgb: RgbColor | null = hexToRgb('#13ecd6')
 const normalizedColor: string | null = normalizeColor('13ecd6')

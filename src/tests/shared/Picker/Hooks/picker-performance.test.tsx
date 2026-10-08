@@ -1,8 +1,8 @@
 import { afterEach, expect, mock, test } from 'bun:test'
 import { useState, type ChangeEvent, type PointerEvent } from 'react'
 import { act, cleanup, renderHook } from '@testing-library/react'
-import useCustomColorPickerLogic from '../../../../shared/Picker/Hooks/useCustomColorPickerLogic.js'
-import usePickerOverlay from '../../../../shared/Picker/Hooks/usePickerOverlay.js'
+import useCustomColorPickerLogic from '../../../../shared/Picker/Hooks/useCustomColorPickerLogic.ts'
+import usePickerOverlay from '../../../../shared/Picker/Hooks/usePickerOverlay.ts'
 
 afterEach(cleanup)
 

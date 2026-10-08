@@ -12,20 +12,19 @@ import type {
     Dispatch,
     SetStateAction,
 } from 'react'
-import type { HsvColor } from '../../../lib/Color/Types/color.types.js'
+import type {
+    HsvColor,
+    ColorFormat,
+} from '../../../lib/Color/Types/color.types.ts'
 import type {
     PickerLocale,
     PickerMessages,
-} from '../../../lib/Messages/Types/i18n.types.js'
+} from '../../../lib/Messages/Types/i18n.types.ts'
 
-export type ColorFormat = 'hex' | 'rgb'
-
-export interface RgbColor {
-    red: number
-    green: number
-    blue: number
-}
-
+export type {
+    ColorFormat,
+    RgbColor,
+} from '../../../lib/Color/Types/color.types.ts'
 export type ColorValidityChangeHandler = (isValid: boolean) => void
 
 export interface CustomColorPickerDesign {
@@ -77,7 +76,7 @@ export interface CustomColorPickerProps extends AriaAttributes {
 export type {
     PickerLocale,
     PickerMessages,
-} from '../../../lib/Messages/i18n.js'
+} from '../../../lib/Messages/Types/i18n.types.ts'
 
 export interface PickerProviderProps {
     children: ReactNode

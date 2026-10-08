@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { clamp } from '../../../lib/Color/color.js'
+import { clamp } from '../../../lib/Color/color.ts'
 import {
     getAncestorShadowRoots,
     isComposedAncestor,
-} from '../../../lib/DOM/overlayGeometry.js'
+} from '../../../lib/DOM/overlayGeometry.ts'
 
 import type {
     PickerPosition,
     UsePickerOverlayOptions,
     PickerOverlayResult,
-} from '../Types/picker.types.js'
+} from '../Types/picker.types.ts'
 
 export default function usePickerOverlay({
     initialFocusRef,

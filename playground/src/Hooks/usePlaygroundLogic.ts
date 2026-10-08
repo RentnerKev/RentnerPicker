@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
-export function usePlaygroundLogic() {
+import type { PlaygroundLogicResult } from '../Types/playground.types.ts'
+
+export function usePlaygroundLogic(): PlaygroundLogicResult {
     const [brandColor, setBrandColor] = useState('#13ecd6')
     const [brandBlurred, setBrandBlurred] = useState(false)
     const [accentColor, setAccentColor] = useState('#3f40ad')
@@ -30,7 +32,6 @@ export function usePlaygroundLogic() {
         },
         setter: {
             setBrandColor,
-            setBrandBlurred,
             setAccentColor,
             setRgbColor,
             setCompactColor,

@@ -1,5 +1,5 @@
-import { isValidColor } from './color.js'
-import type { PickerMessages } from '../Messages/Types/i18n.types.js'
+import { isValidColor } from './color.ts'
+import type { PickerMessages } from '../Messages/Types/i18n.types.ts'
 
 export function getColorError(
     value: string,

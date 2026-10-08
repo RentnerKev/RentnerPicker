@@ -1,8 +1,8 @@
 import { CustomColorPicker } from '@rentnerkev/picker'
 
-import { useConsumerAppLogic } from './Hooks/useConsumerAppLogic.js'
+import { useConsumerAppLogic } from './Hooks/useConsumerAppLogic.ts'
 
-import type { AppLogicResult } from './Types/app.types.js'
+import type { AppLogicResult } from './Types/app.types.ts'
 
 export function App() {
     const {

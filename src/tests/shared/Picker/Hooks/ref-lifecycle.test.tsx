@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, mock, test } from 'bun:test'
 import { createRef, type Ref } from 'react'
 import { cleanup, render, screen } from '@testing-library/react'
-import { CustomColorPicker } from '../../../../index.js'
-import { composeRefs } from '../../../../shared/Picker/Hooks/useComposedRefs.js'
+import { CustomColorPicker } from '../../../../shared/Picker/Components/CustomColorPicker.tsx'
+import { composeRefs } from '../../../../shared/Picker/Hooks/useComposedRefs.ts'
 
 afterEach(() => {
     cleanup()

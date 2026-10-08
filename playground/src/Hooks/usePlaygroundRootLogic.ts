@@ -1,4 +1,6 @@
-export function usePlaygroundRootLogic() {
+import type { PlaygroundRootLogicResult } from '../Types/playground.types.ts'
+
+export function usePlaygroundRootLogic(): PlaygroundRootLogicResult {
     return {
         state: {
             readOnly:

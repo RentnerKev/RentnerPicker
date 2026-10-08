@@ -1,10 +1,10 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker'
-import { App } from './App'
+import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker.tsx'
+import { App } from './App.tsx'
 // oxlint-disable-next-line import/no-unassigned-import -- The Vite entry deliberately loads the playground stylesheet.
 import './index.css'
-import { usePlaygroundRootLogic } from './Hooks/usePlaygroundRootLogic'
+import { usePlaygroundRootLogic } from './Hooks/usePlaygroundRootLogic.ts'
 
 function ReadOnlyPickerFixture() {
     return (

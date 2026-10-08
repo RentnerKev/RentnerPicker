@@ -1,9 +1,5 @@
-import type { HsvColor } from './Types/color.types.js'
-export type { HsvColor } from './Types/color.types.js'
-import type {
-    ColorFormat,
-    RgbColor,
-} from '../../shared/Picker/Types/picker.types.js'
+import type { HsvColor, ColorFormat, RgbColor } from './Types/color.types.ts'
+export type { HsvColor } from './Types/color.types.ts'
 
 const hexColorPattern = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
 const rgbColorPattern =

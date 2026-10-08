@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
+import { CustomColorPicker } from '../../../shared/Picker/Components/CustomColorPicker.tsx'
 import {
-    CustomColorPicker,
     pickerMessageCatalog,
     resolvePickerMessages,
-} from '../../../index.js'
+} from '../../../lib/Messages/i18n.ts'
 
 describe('picker locale messages', () => {
     test('keeps German defaults', () => {

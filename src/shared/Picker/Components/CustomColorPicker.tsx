@@ -1,7 +1,7 @@
 import { AlertCircle, Palette, Pipette, X } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.js'
-import type { CustomColorPickerProps } from '../Types/picker.types.js'
+import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.ts'
+import type { CustomColorPickerProps } from '../Types/picker.types.ts'
 
 export function CustomColorPicker(props: CustomColorPickerProps) {
     const { state, handler, refs } = useCustomColorPickerLogic(props)

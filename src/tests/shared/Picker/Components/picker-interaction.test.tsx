@@ -9,7 +9,7 @@ import {
     waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { CustomColorPicker } from '../../../../index.js'
+import { CustomColorPicker } from '../../../../shared/Picker/Components/CustomColorPicker.tsx'
 
 afterEach(() => {
     cleanup()

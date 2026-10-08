@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { CustomColorPicker } from '../../../index.js'
-import { mergeAriaIds, resolveFieldError } from '../../../lib/Field/field.js'
+import { CustomColorPicker } from '../../../shared/Picker/Components/CustomColorPicker.tsx'
+import { mergeAriaIds, resolveFieldError } from '../../../lib/Field/field.ts'
 
 describe('picker field contract', () => {
     test('lets an external error control the resolved field error', () => {

@@ -1,6 +1,6 @@
-import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic'
+import { usePlaygroundLogic } from './Hooks/usePlaygroundLogic.ts'
 import { Brush, Copy, PaintBucket, Palette, Send } from 'lucide-react'
-import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker'
+import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker.tsx'
 
 export function App() {
     const {

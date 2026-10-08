@@ -1,5 +1,5 @@
-import type { PickerLocale, PickerMessages } from './Types/i18n.types.js'
-export type { PickerLocale, PickerMessages } from './Types/i18n.types.js'
+import type { PickerLocale, PickerMessages } from './Types/i18n.types.ts'
+export type { PickerLocale, PickerMessages } from './Types/i18n.types.ts'
 const germanMessages: PickerMessages = {
     required: 'Dieses Feld ist erforderlich',
     invalidColor: 'Bitte eine gültige HEX- oder RGB-Farbe angeben',

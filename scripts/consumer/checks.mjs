@@ -140,7 +140,7 @@ export async function check({ page, expect }) {
 
     const multiForm = page.getByRole('form', { name: 'Multiple color form' })
     // Keep both drafts uncommitted, as a form library can do before requestSubmit.
-    /* eslint-disable no-await-in-loop -- Sequential input events prepare both drafts on the same form. */
+    /* oxlint-disable no-await-in-loop -- Sequential input events prepare both drafts on the same form. */
     for (const [name, value] of [
         ['First color', '#333333'],
         ['Second color', '#444444'],
@@ -155,7 +155,7 @@ export async function check({ page, expect }) {
                 input.dispatchEvent(new Event('input', { bubbles: true }))
             }, value)
     }
-    /* eslint-enable no-await-in-loop */
+    /* oxlint-enable no-await-in-loop */
     await multiForm.evaluate((form) => form.requestSubmit())
     await expect(page.getByTestId('multi-submit-count')).toHaveText('1')
     await expect(page.getByTestId('multi-submission')).toHaveText(

@@ -1,3 +1,4 @@
+import type { EyeDropperWindow } from '../Types/eyedropper.types.ts'
 import {
     useCallback,
     useEffect,
@@ -23,28 +24,18 @@ import {
     normalizeColor,
     rgbToHex,
     toPickerHex,
-} from '../../../lib/Color/color.js'
-import type { HsvColor } from '../../../lib/Color/Types/color.types.js'
-import { getColorError } from '../../../lib/Color/colorValidation.js'
-import { mergeAriaIds, resolveFieldError } from '../../../lib/Field/field.js'
-import { usePickerDefaults, usePickerMessages } from './usePickerContext.js'
-import type { PickerMessages } from '../../../lib/Messages/Types/i18n.types.js'
+} from '../../../lib/Color/color.ts'
+import type { HsvColor } from '../../../lib/Color/Types/color.types.ts'
+import { getColorError } from '../../../lib/Color/colorValidation.ts'
+import { mergeAriaIds, resolveFieldError } from '../../../lib/Field/field.ts'
+import { usePickerDefaults, usePickerMessages } from './usePickerContext.ts'
+import type { PickerMessages } from '../../../lib/Messages/Types/i18n.types.ts'
 import type {
     CustomColorPickerProps,
     CustomColorPickerLogicResult,
-} from '../Types/picker.types.js'
-import usePickerOverlay from './usePickerOverlay.js'
-import useComposedRefs from './useComposedRefs.js'
-
-interface EyeDropperConstructor {
-    new (): {
-        open: () => Promise<{ sRGBHex: string }>
-    }
-}
-
-interface EyeDropperWindow extends Window {
-    EyeDropper?: EyeDropperConstructor
-}
+} from '../Types/picker.types.ts'
+import usePickerOverlay from './usePickerOverlay.ts'
+import useComposedRefs from './useComposedRefs.ts'
 
 function getFormSubmitter(
     form: HTMLFormElement,

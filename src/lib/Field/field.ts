@@ -1,5 +1,5 @@
-import type { ResolvedFieldError } from './Types/field.types.js'
-export type { ResolvedFieldError } from './Types/field.types.js'
+import type { ResolvedFieldError } from './Types/field.types.ts'
+export type { ResolvedFieldError } from './Types/field.types.ts'
 export function resolveFieldError(
     internalError: string | null,
     externalError: string | null | undefined,

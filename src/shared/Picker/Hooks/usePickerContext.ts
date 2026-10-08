@@ -1,14 +1,14 @@
 import { createContext, useContext, useMemo } from 'react'
-import { resolvePickerMessages } from '../../../lib/Messages/i18n.js'
+import { resolvePickerMessages } from '../../../lib/Messages/i18n.ts'
 import type {
     PickerLocale,
     PickerMessages,
-} from '../../../lib/Messages/Types/i18n.types.js'
+} from '../../../lib/Messages/Types/i18n.types.ts'
 import type {
     PickerDefaults,
     PickerProviderProps,
     PickerProviderLogicResult,
-} from '../Types/picker.types.js'
+} from '../Types/picker.types.ts'
 export const PickerContext = createContext<PickerDefaults>({})
 
 export function usePickerProviderLogic({

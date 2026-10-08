@@ -19,20 +19,21 @@
     ],
     "scripts": {
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
-        "typecheck": "tsc --noEmit && tsc --project tsconfig.type-tests.json && bun run typecheck:automation",
+        "typecheck": "tsc --noEmit && tsc --project tsconfig.type-tests.json && bun run typecheck:playground && bun run typecheck:automation",
         "test": "bun test",
         "prepare": "bun run build",
         "pack:check": "bun pm pack --dry-run",
-        "pack:consumer": "node scripts/verify-package.mjs",
+        "pack:consumer": "node scripts/consumer/verify.mjs",
         "test:e2e": "playwright test",
         "playground:dev": "bun --cwd playground dev",
         "playground:build": "bun --cwd playground build",
-        "lint": "oxlint .",
-        "lint:fix": "oxlint --fix .",
-        "format": "oxfmt .",
-        "format:check": "oxfmt --check .",
+        "lint": "oxlint --deny-warnings src scripts playground/src playground/vite.config.ts playwright.config.ts .github/scripts",
+        "lint:fix": "oxlint --fix --deny-warnings src scripts playground/src playground/vite.config.ts playwright.config.ts .github/scripts",
+        "format": "oxfmt src scripts playground/src .github/scripts docs README.md package.json tsconfig.json tsconfig.type-tests.json playground/tsconfig.json playground/package.json playground/vite.config.ts playwright.config.ts .oxlintrc.json .oxfmtrc.json",
+        "format:check": "oxfmt --check src scripts playground/src .github/scripts docs README.md package.json tsconfig.json tsconfig.type-tests.json playground/tsconfig.json playground/package.json playground/vite.config.ts playwright.config.ts .oxlintrc.json .oxfmtrc.json",
         "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run pack:check && bun run pack:consumer && bun run test:e2e",
-        "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json"
+        "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json",
+        "typecheck:playground": "tsc --noEmit -p playground/tsconfig.json"
     },
     "repository": {
         "type": "git",
@@ -60,6 +61,7 @@
         "@tailwindcss/vite": "^4.3.3",
         "@testing-library/react": "^16.3.3",
         "@testing-library/user-event": "^14.6.7",
+        "@types/bun": "^1.4.2",
         "@types/node": "^24.19.1",
         "@types/react": "^19.3.0",
         "@types/react-dom": "^19.3.0",
@@ -80,20 +82,20 @@
         },
         "./tailwind.css": "./tailwind.css",
         "./picker": {
-            "import": "./dist/Components/CustomColorPicker.js",
-            "types": "./dist/Components/CustomColorPicker.d.ts"
+            "import": "./dist/shared/Picker/Components/CustomColorPicker.js",
+            "types": "./dist/shared/Picker/Components/CustomColorPicker.d.ts"
         },
         "./color": {
-            "import": "./dist/color.js",
-            "types": "./dist/color.d.ts"
+            "import": "./dist/lib/Color/color.js",
+            "types": "./dist/lib/Color/color.d.ts"
         },
         "./messages": {
-            "import": "./dist/i18n.js",
-            "types": "./dist/i18n.d.ts"
+            "import": "./dist/lib/Messages/i18n.js",
+            "types": "./dist/lib/Messages/i18n.d.ts"
         },
         "./types": {
-            "import": "./dist/types.js",
-            "types": "./dist/types.d.ts"
+            "import": "./dist/shared/Picker/Types/picker.types.js",
+            "types": "./dist/shared/Picker/Types/picker.types.d.ts"
         },
         "./package.json": "./package.json"
     },

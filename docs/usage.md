@@ -272,9 +272,9 @@ MIT
 
 ## Architecture
 
-Reusable picker UI lives in `src/shared/Picker/Components`, with its focused hooks in `src/shared/Picker/Hooks` and typed contracts in `src/shared/Picker/Types`. Public modules at the `src` root remain compatibility facades. UI-free color, selection, field, and message logic lives in `src/lib` under its domain. Tests are centralized in `src/tests`, mirroring the source domains; browser and compile-time contracts run separately.
+Reusable picker UI lives in `src/shared/Picker/Components`, with its focused hooks in `src/shared/Picker/Hooks` and typed contracts in `src/shared/Picker/Types`. Package subpaths resolve directly to the defining modules. UI-free color, selection, field, and message logic lives in `src/lib` under its domain. Tests are centralized in `src/tests`, mirroring the source domains; browser and compile-time contracts run separately.
 
-Public npm root, subpath, and type entry points retain their existing paths through compatibility facades. Internal code imports defining modules directly. No application routes, server stack, or additional dependencies are needed for these libraries.
+Public npm root, subpath, and type entry points retain their existing import paths; package exports resolve directly to their defining modules. Internal code imports defining modules directly. No application routes, server stack, or additional dependencies are needed for these libraries.
 
 Pointer capture starts on pointerdown. Repeated coordinates skip layout reads until controlled values or relevant geometry invalidate them. Popup scrolling invalidates color-area coordinates without repositioning the anchor; ancestor scrolling, resize, and size observation refresh geometry. Latent HSV hue for black and gray remains independent of serialized color callbacks.
 

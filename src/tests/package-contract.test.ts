@@ -30,12 +30,12 @@ describe('published package contract', () => {
             './package.json',
         ])
         expect(packageJson.exports['./color']).toEqual({
-            import: './dist/color.js',
-            types: './dist/color.d.ts',
+            import: './dist/lib/Color/color.js',
+            types: './dist/lib/Color/color.d.ts',
         })
         expect(packageJson.exports['./messages']).toEqual({
-            import: './dist/i18n.js',
-            types: './dist/i18n.d.ts',
+            import: './dist/lib/Messages/i18n.js',
+            types: './dist/lib/Messages/i18n.d.ts',
         })
         expect(packageJson.exports['./package.json']).toBe('./package.json')
     })

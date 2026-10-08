@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
-import { CustomColorPicker, PickerProvider } from '../../../index.js'
+import { CustomColorPicker } from '../../../shared/Picker/Components/CustomColorPicker.tsx'
+import { PickerProvider } from '../../../shared/Picker/Components/PickerProvider.tsx'
 
 afterEach(cleanup)
 
