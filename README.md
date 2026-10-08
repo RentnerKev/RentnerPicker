@@ -57,7 +57,7 @@ export function BrandColor() {
 | **Hue, saturation & brightness**<br>[![Hue, saturation & brightness](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/hue-saturation-brightness.png)](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/hue-saturation-brightness.png) | **Custom indigo presets**<br>[![Custom indigo presets](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/custom-indigo-presets.png)](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/custom-indigo-presets.png) |
 | **RGB color input**<br>[![RGB color input](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/rgb-color-input.png)](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/rgb-color-input.png)                                               | **Compact color trigger**<br>[![Compact color trigger](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/compact-color-trigger.png)](https://raw.githubusercontent.com/RentnerKev/RentnerPicker/main/assets/readme/screenshots/compact-color-trigger.png) |
 
-[Full API & usage](https://github.com/RentnerKev/RentnerPicker/blob/main/docs/usage.md) · [Local playground](./playground) · [MIT license](./LICENSE)
+[Full API & usage](https://npm.rentner.dev/docs/color-picker) · [Local playground](./playground) · [MIT license](./LICENSE)
 
 Run the playground from the repository root:
 
