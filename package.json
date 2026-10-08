@@ -12,7 +12,9 @@
     "type": "module",
     "files": [
         "dist",
-        "tailwind.css"
+        "tailwind.css",
+        "README.md",
+        "docs/usage.md"
     ],
     "sideEffects": [
         "./tailwind.css"
@@ -97,7 +99,11 @@
             "import": "./dist/shared/Picker/Types/picker.types.js",
             "types": "./dist/shared/Picker/Types/picker.types.d.ts"
         },
-        "./package.json": "./package.json"
+        "./package.json": "./package.json",
+        "./ai": {
+            "types": "./dist/ai.d.ts",
+            "import": "./dist/ai.js"
+        }
     },
     "packageManager": "bun@1.4.2"
 }

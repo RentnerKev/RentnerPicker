@@ -279,3 +279,43 @@ Public npm root, subpath, and type entry points retain their existing import pat
 Pointer capture starts on pointerdown. Repeated coordinates skip layout reads until controlled values or relevant geometry invalidate them. Popup scrolling invalidates color-area coordinates without repositioning the anchor; ancestor scrolling, resize, and size observation refresh geometry. Latent HSV hue for black and gray remains independent of serialized color callbacks.
 
 Oxlint enables React and JSX accessibility rules across source, tests, tooling, and playground code. Four attribute-local compatibility comments preserve existing semantics: `prefer-tag-over-role` on the custom nonmodal dialog keeps hook-owned focus and Escape behavior; `role-supports-aria-props` preserves the existing `aria-description`, `aria-invalid`, and `aria-errormessage` field contracts. [WAI-ARIA 1.2 global states](https://www.w3.org/TR/wai-aria-1.2/#global_states) still lists the validation attributes (global use is deprecated, not prohibited); [WAI-ARIA 1.3 aria-description](https://www.w3.org/TR/wai-aria-1.3/#aria-description) defines accessible descriptions. These exceptions are per attribute, not file-wide disables or removal of existing checks. Browser focus, keyboard, native validation, and axe checks cover the preserved contract.
+
+## AI and read-only MCP access
+
+The separate `@rentnerkev/picker/ai` entry is for Node.js and Bun tooling. It reads
+only this installed package's manifest, README, usage guide, and built TypeScript
+declarations. It does not import React, mount UI, run examples, perform network
+requests, or require an MCP runtime. Keep it in server/tooling code.
+
+```ts
+import {
+    getPackageInfo,
+    getPackageApi,
+    getPackageDocumentation,
+    searchPackageDocumentation,
+    getPackageExamples,
+} from '@rentnerkev/picker/ai'
+
+const info = getPackageInfo()
+const api = getPackageApi() // All public typed subpaths and dependent declarations
+const usage = getPackageDocumentation('usage') // Full guide, including CSS and providers
+const readme = getPackageDocumentation('readme')
+const matches = searchPackageDocumentation('messages') // Literal, case-insensitive lines
+const examples = getPackageExamples() // Fenced examples from the usage guide
+```
+
+`getPackageApi({ subpath: '.', symbol: 'CustomColorPicker' })` validates the symbol
+against the selected public entry and returns its complete declaration context.
+Unknown subpaths or symbols throw an error. File paths are not accepted. The
+`./ai` entry itself is excluded from this UI API context. The manifest's `exports`
+map remains available through `getPackageInfo()`.
+
+Public website discovery is planned at
+[llms.txt](https://packages.rentner.dev/llms.txt) and
+[the MCP endpoint](https://packages.rentner.dev/mcp). These addresses become
+available after the website deployment; this documentation does not claim the
+endpoint is already online. The website's read-only tools expose public package
+information, API declarations, usage guides, examples, and search, without
+accounts, write operations, or access to private project files. The installed
+`/ai` entry works locally without that service. Always use the documentation and
+declarations for the version installed in your project.
