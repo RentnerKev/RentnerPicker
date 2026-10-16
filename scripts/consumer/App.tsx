@@ -7,8 +7,9 @@ import type { AppLogicResult } from './Types/app.types.ts'
 export function App() {
     const {
         state: {
+            brandFieldProps,
+            isBrandDraftValid,
             acceptColorChanges,
-            color,
             brandSubmissions,
             optionalSubmission,
             optionalSubmitCount,
@@ -32,7 +33,6 @@ export function App() {
         },
         handler: {
             handleBrandSubmit,
-            handleColorChange,
             handleOptionalSubmit,
             handleRequiredSubmit,
             handleMultipleSubmit,
@@ -66,14 +66,16 @@ export function App() {
 
             <form aria-label="Accepted color form" onSubmit={handleBrandSubmit}>
                 <CustomColorPicker
-                    name="brandColor"
+                    {...brandFieldProps}
+                    controlSize="md"
                     aria-label="Brand color"
                     locale="en"
-                    value={color}
-                    onValueChange={handleColorChange}
                 />
                 <button type="submit">Submit brand color</button>
             </form>
+            <output data-testid="brand-draft-valid">
+                {String(isBrandDraftValid)}
+            </output>
             <output
                 aria-label="Brand submission count"
                 data-testid="brand-submit-count"

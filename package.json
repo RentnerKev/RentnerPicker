@@ -14,10 +14,12 @@
         "dist",
         "tailwind.css",
         "README.md",
-        "docs/usage.md"
+        "docs/usage.md",
+        "theme.css"
     ],
     "sideEffects": [
-        "./tailwind.css"
+        "./tailwind.css",
+        "./theme.css"
     ],
     "scripts": {
         "build": "bun -e \"import { rmSync } from 'node:fs'; rmSync('dist', { recursive: true, force: true })\" && tsc",
@@ -31,8 +33,8 @@
         "playground:build": "bun --cwd playground build",
         "lint": "oxlint --deny-warnings src scripts playground/src playground/vite.config.ts playwright.config.ts .github/scripts",
         "lint:fix": "oxlint --fix --deny-warnings src scripts playground/src playground/vite.config.ts playwright.config.ts .github/scripts",
-        "format": "oxfmt src scripts playground/src .github/scripts docs README.md package.json tsconfig.json tsconfig.type-tests.json playground/tsconfig.json playground/package.json playground/vite.config.ts playwright.config.ts .oxlintrc.json .oxfmtrc.json",
-        "format:check": "oxfmt --check src scripts playground/src .github/scripts docs README.md package.json tsconfig.json tsconfig.type-tests.json playground/tsconfig.json playground/package.json playground/vite.config.ts playwright.config.ts .oxlintrc.json .oxfmtrc.json",
+        "format": "oxfmt src scripts playground/src .github/scripts docs README.md package.json tsconfig.json tsconfig.type-tests.json playground/tsconfig.json playground/package.json playground/vite.config.ts playwright.config.ts .oxlintrc.json .oxfmtrc.json theme.css tailwind.css",
+        "format:check": "oxfmt --check src scripts playground/src .github/scripts docs README.md package.json tsconfig.json tsconfig.type-tests.json playground/tsconfig.json playground/package.json playground/vite.config.ts playwright.config.ts .oxlintrc.json .oxfmtrc.json theme.css tailwind.css",
         "verify": "bun run typecheck && bun run lint && bun run format:check && bun run test && bun run build && bun run pack:check && bun run pack:consumer && bun run test:e2e",
         "typecheck:automation": "tsc --noEmit -p .github/scripts/tsconfig.json",
         "typecheck:playground": "tsc --noEmit -p playground/tsconfig.json"
@@ -103,6 +105,11 @@
         "./ai": {
             "types": "./dist/ai.d.ts",
             "import": "./dist/ai.js"
+        },
+        "./theme.css": "./theme.css",
+        "./form": {
+            "types": "./dist/form.d.ts",
+            "import": "./dist/form.js"
         }
     },
     "packageManager": "bun@1.4.2"

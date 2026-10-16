@@ -115,6 +115,11 @@ export default function useCustomColorPickerLogic({
     label,
     description,
     customDesign,
+    classNames: providedClassNames,
+    controlSize,
+    portalContainer,
+    portalClassName,
+    portalZIndex,
     presets = defaultPresets,
     'aria-label': ariaLabel,
     'aria-labelledby': ariaLabelledBy,
@@ -128,6 +133,16 @@ export default function useCustomColorPickerLogic({
     ...ariaProps
 }: CustomColorPickerProps): CustomColorPickerLogicResult {
     const defaults = usePickerDefaults()
+    const classNames = { ...defaults.classNames, ...providedClassNames }
+    const size = controlSize ?? defaults.controlSize
+    const sizeClassName =
+        size === 'sm'
+            ? 'h-rentner-control-sm'
+            : size === 'md'
+              ? 'h-rentner-control-md'
+              : size === 'lg'
+                ? 'h-rentner-control-lg'
+                : ''
     const messages = usePickerMessages(providedLocale, providedMessages)
     const generatedId = useId()
     const fieldId = id ?? `color-picker-${generatedId}`
@@ -208,23 +223,23 @@ export default function useCustomColorPickerLogic({
     const hasValidityChangeHandler = onValidityChange !== undefined
 
     const design = {
-        bg: 'bg-input-dark',
-        border: 'border-border-dark',
-        text: 'text-white',
-        placeholder: 'placeholder-gray-400',
-        focusRing: 'focus-within:ring-primary/50',
-        focusBorder: 'focus-within:border-primary',
-        errorBorder: 'border-red-500',
-        errorRing: 'focus-within:ring-red-500/50',
-        errorText: 'text-red-400',
-        labelText: 'text-gray-200',
-        descriptionText: 'text-gray-400',
-        iconColor: 'text-gray-500',
-        iconFocus: 'group-focus-within:text-primary',
-        hoverText: 'hover:text-white',
-        previewBorder: 'border-border-dark',
-        presetBorder: 'border-border-dark',
-        presetActiveBorder: 'ring-primary border-primary',
+        bg: 'bg-rentner-control',
+        border: 'border-rentner-border',
+        text: 'text-rentner-foreground',
+        placeholder: 'placeholder-rentner-muted',
+        focusRing: 'focus-within:ring-rentner-accent',
+        focusBorder: 'focus-within:border-rentner-accent',
+        errorBorder: 'border-rentner-danger',
+        errorRing: 'focus-within:ring-rentner-danger',
+        errorText: 'text-rentner-danger',
+        labelText: 'text-rentner-foreground',
+        descriptionText: 'text-rentner-muted',
+        iconColor: 'text-rentner-muted',
+        iconFocus: 'group-focus-within:text-rentner-accent',
+        hoverText: 'hover:text-rentner-foreground',
+        previewBorder: 'border-rentner-border',
+        presetBorder: 'border-rentner-border',
+        presetActiveBorder: 'ring-rentner-accent border-rentner-accent',
         ...defaults.customDesign,
         ...customDesign,
     }
@@ -887,6 +902,37 @@ export default function useCustomColorPickerLogic({
             return
         }
 
+        const popupRoot = overlay.refs.popupRef.current?.getRootNode()
+        if (
+            nextTarget instanceof Element &&
+            popupRoot instanceof ShadowRoot &&
+            popupRoot.host === nextTarget
+        ) {
+            const currentTarget = event.currentTarget
+            queueMicrotask(() => {
+                let active = nextTarget.ownerDocument.activeElement
+                while (active?.shadowRoot?.activeElement)
+                    active = active.shadowRoot.activeElement
+                if (
+                    active &&
+                    (overlay.refs.rootRef.current?.contains(active) ||
+                        overlay.refs.popupRef.current?.contains(active))
+                )
+                    return
+                onBlur?.({
+                    ...event,
+                    currentTarget,
+                    relatedTarget: active,
+                    preventDefault: event.preventDefault.bind(event),
+                    stopPropagation: event.stopPropagation.bind(event),
+                    persist: event.persist.bind(event),
+                    isDefaultPrevented: event.isDefaultPrevented.bind(event),
+                    isPropagationStopped:
+                        event.isPropagationStopped.bind(event),
+                })
+            })
+            return
+        }
         onBlur?.(event)
     }
 
@@ -916,6 +962,14 @@ export default function useCustomColorPickerLogic({
             togglePicker,
         },
         state: {
+            classNames,
+            sizeClassName,
+            portalContainer:
+                portalContainer === undefined
+                    ? defaults.portalContainer
+                    : portalContainer,
+            portalClassName: portalClassName ?? defaults.portalClassName,
+            portalZIndex: portalZIndex ?? defaults.portalZIndex,
             fieldId,
             hasLabel,
             hasDescription,

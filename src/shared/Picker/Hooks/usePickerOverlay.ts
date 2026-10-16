@@ -100,6 +100,14 @@ export default function usePickerOverlay({
                 !rootRef.current?.contains(target) &&
                 !popupRef.current?.contains(target)
             ) {
+                let active = popupRef.current?.ownerDocument.activeElement
+                while (active?.shadowRoot?.activeElement)
+                    active = active.shadowRoot.activeElement
+                if (
+                    active instanceof HTMLElement &&
+                    popupRef.current?.contains(active)
+                )
+                    active.blur()
                 onClose(false)
             }
         }

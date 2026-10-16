@@ -319,3 +319,26 @@ information, API declarations, usage guides, examples, and search, without
 accounts, write operations, or access to private project files. The installed
 `/ai` entry works locally without that service. Always use the documentation and
 declarations for the version installed in your project.
+
+## Shared presentation and form adapters
+
+Provider and component props accept `controlSize: 'sm' | 'md' | 'lg'` (36/44/48 px), `classNames`, `portalContainer`, `portalClassName`, and `portalZIndex`. Local values override provider defaults; omitted size preserves the previous geometry. A null container uses document.body. Slots are root, label, description, error, control, leading, trailing (preview trigger), input, popup, presets, and preset. Slots replace their visual default block while functional layout/focus stays active. Existing className and customDesign remain supported.
+
+`@rentnerkev/picker/theme.css` exports the shared `--rentner-*` tokens. The Tailwind entry includes them automatically. Customize tokens on the app/portal ancestor or use customDesign.
+
+The UI-free `./form` entry connects a structural field without a TanStack runtime dependency. Call it inside a subscribed field render:
+
+```tsx
+import { CustomColorPicker } from '@rentnerkev/picker'
+import { getPickerFieldProps } from '@rentnerkev/picker/form'
+
+;<CustomColorPicker
+    {...getPickerFieldProps(colorField, {
+        onValidityChange: setColorDraftValid,
+        showErrors: 'touched',
+    })}
+    controlSize="md"
+/>
+```
+
+A field supplies `name`, `state.value`, optional `state.meta.errors/isTouched`, `handleChange(value)`, and `handleBlur()`. Errors default to touched readable strings/message objects; use `showErrors: 'always' | 'never'` and `mapError` for other contracts. With no visible external error, the adapter leaves error undefined so internal draft validity remains active. Track `onValidityChange` alongside the committed field value to disable submit while the visible draft is invalid; committed values alone cannot detect invalid drafts. Explicit error=null remains an intentional native validation override on the component.

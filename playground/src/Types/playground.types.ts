@@ -20,5 +20,5 @@ export interface PlaygroundLogicResult {
     }
 }
 export interface PlaygroundRootLogicResult {
-    state: { readOnly: boolean }
+    state: { readOnly: boolean; shadowPortal: boolean }
 }

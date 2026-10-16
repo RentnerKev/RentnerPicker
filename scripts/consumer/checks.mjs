@@ -35,6 +35,7 @@ export async function check({ page, expect }) {
 
     await expect(acceptChanges).not.toBeChecked()
     await expect(colorInput).toHaveValue('#abcdef')
+    await expect(page.getByTestId('brand-draft-valid')).toHaveText('true')
     expect(
         await acceptedForm.evaluate((node) =>
             new FormData(node).get('brandColor'),
@@ -116,6 +117,7 @@ export async function check({ page, expect }) {
     await expect(page.getByTestId('brand-submit-count')).toHaveText('2')
     await expect(page.getByTestId('brand-submission')).toHaveText('#224466')
     await colorInput.fill('#invalid')
+    await expect(page.getByTestId('brand-draft-valid')).toHaveText('false')
     await colorInput.press('Enter')
     await expect(page.getByTestId('brand-submit-count')).toHaveText('2')
     expect(

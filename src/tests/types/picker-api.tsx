@@ -34,3 +34,34 @@ void isValid
 // @ts-expect-error Validity callbacks receive a boolean.
 const invalidHandler: ColorValidityChangeHandler = (value: string) => value
 void invalidHandler
+
+import { getPickerFieldProps } from '../../form.ts'
+const colorField = {
+    name: 'color',
+    state: {
+        value: '#abcdef',
+        meta: { errors: [] as unknown[], isTouched: true },
+    },
+    handleChange: (_value: string) => undefined,
+    handleBlur: () => undefined,
+}
+const pickerAdapterProps = getPickerFieldProps(colorField, {
+    onValidityChange: (_valid: boolean) => undefined,
+})
+const pickerAdapterUsage = (
+    <CustomColorPicker
+        {...pickerAdapterProps}
+        controlSize="lg"
+        classNames={{
+            root: 'w-full',
+            label: 'text-sm',
+            control: 'border',
+            leading: 'pl-2',
+            trailing: 'pr-2',
+            popup: 'p-2',
+        }}
+        portalContainer={null}
+        portalZIndex={10000}
+    />
+)
+void pickerAdapterUsage

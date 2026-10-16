@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { getPickerFieldProps } from '@rentnerkev/picker/form'
 import type { FormEvent } from 'react'
 
 export function useConsumerAppLogic() {
+    const [isBrandDraftValid, setIsBrandDraftValid] = useState(true)
     const [acceptColorChanges, setAcceptColorChanges] = useState(false)
     const [color, setColor] = useState('#abcdef')
     const [brandSubmissions, setBrandSubmissions] = useState<string[]>([])
@@ -128,8 +130,19 @@ export function useConsumerAppLogic() {
         setRepeatedChanges((count) => count + 1)
     }
 
+    const brandFieldProps = getPickerFieldProps(
+        {
+            name: 'brandColor',
+            state: { value: color },
+            handleChange: handleColorChange,
+            handleBlur: () => undefined,
+        },
+        { onValidityChange: setIsBrandDraftValid },
+    )
     return {
         state: {
+            brandFieldProps,
+            isBrandDraftValid,
             acceptColorChanges,
             color,
             brandSubmissions,

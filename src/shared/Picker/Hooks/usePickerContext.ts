@@ -15,15 +15,38 @@ export function usePickerProviderLogic({
     locale,
     messages,
     customDesign,
+    controlSize,
+    classNames,
+    portalContainer,
+    portalClassName,
+    portalZIndex,
 }: Omit<PickerProviderProps, 'children'>): PickerProviderLogicResult {
     const parent = useContext(PickerContext)
     const value = useMemo<PickerDefaults>(
         () => ({
+            controlSize: controlSize ?? parent.controlSize,
+            classNames: { ...parent.classNames, ...classNames },
+            portalContainer:
+                portalContainer === undefined
+                    ? parent.portalContainer
+                    : portalContainer,
+            portalClassName: portalClassName ?? parent.portalClassName,
+            portalZIndex: portalZIndex ?? parent.portalZIndex,
             locale: locale ?? parent.locale,
             messages: { ...parent.messages, ...messages },
             customDesign: { ...parent.customDesign, ...customDesign },
         }),
-        [parent, locale, messages, customDesign],
+        [
+            parent,
+            locale,
+            messages,
+            customDesign,
+            controlSize,
+            classNames,
+            portalContainer,
+            portalClassName,
+            portalZIndex,
+        ],
     )
 
     return { state: { contextValue: value } }

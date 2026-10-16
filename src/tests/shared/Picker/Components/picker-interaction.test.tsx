@@ -9,6 +9,8 @@ import {
     waitFor,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { PickerProvider } from '../../../../shared/Picker/Components/PickerProvider.tsx'
+import { getPickerFieldProps } from '../../../../form.ts'
 import { CustomColorPicker } from '../../../../shared/Picker/Components/CustomColorPicker.tsx'
 
 afterEach(() => {
@@ -1355,4 +1357,74 @@ describe('picker interactions', () => {
             expect(validityChanges).toEqual([true, false, true])
         })
     })
+})
+
+test('uses nested provider slots and portal overrides with focus restoration', async () => {
+    const portal = document.createElement('section')
+    document.body.appendChild(portal)
+    try {
+        render(
+            <PickerProvider
+                controlSize="sm"
+                portalContainer={portal}
+                portalClassName="provider-portal"
+                portalZIndex={12000}
+                classNames={{
+                    label: 'provider-label',
+                    control: 'provider-control',
+                }}
+            >
+                <CustomColorPicker
+                    label="Portal color"
+                    value="#abcdef"
+                    onValueChange={() => undefined}
+                    controlSize="md"
+                    classNames={{ label: 'local-label' }}
+                />
+            </PickerProvider>,
+        )
+        expect(screen.getByText('Portal color').className).toBe('local-label')
+        const trigger = screen.getByRole('button', {
+            name: 'Portal color',
+            exact: true,
+        })
+        expect(trigger.parentElement?.className).toContain('provider-control')
+        expect(trigger.parentElement?.className).toContain(
+            'h-rentner-control-md',
+        )
+        expect(trigger.parentElement?.className).not.toContain(
+            'bg-rentner-control',
+        )
+        await userEvent.click(trigger)
+        const dialog = screen.getByRole('dialog')
+        expect(dialog.parentElement).toBe(portal)
+        expect(dialog.className).toContain('provider-portal')
+        expect(dialog.style.zIndex).toBe('12000')
+        await userEvent.keyboard('{Escape}')
+        expect(document.activeElement).toBe(trigger)
+    } finally {
+        portal.remove()
+    }
+})
+test('form adapter retains invalid draft validity alongside committed value', async () => {
+    const validity: boolean[] = []
+    const changes: string[] = []
+    const field = {
+        name: 'color',
+        state: { value: '#abcdef', meta: { isTouched: true, errors: [] } },
+        handleChange: (value: string) => changes.push(value),
+        handleBlur: () => undefined,
+    }
+    render(
+        <CustomColorPicker
+            {...getPickerFieldProps(field, {
+                onValidityChange: (valid) => validity.push(valid),
+            })}
+        />,
+    )
+    const input = screen.getByPlaceholderText('#13ecd6')
+    fireEvent.change(input, { target: { value: 'invalid draft' } })
+    await waitFor(() => expect(validity).toEqual([true, false]))
+    fireEvent.blur(input)
+    expect(changes).toEqual([])
 })

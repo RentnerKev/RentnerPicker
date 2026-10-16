@@ -29,6 +29,8 @@ describe('published package contract', () => {
             './types',
             './package.json',
             './ai',
+            './theme.css',
+            './form',
         ])
         expect(packageJson.exports['./color']).toEqual({
             import: './dist/lib/Color/color.js',

@@ -141,7 +141,7 @@ try {
     assert.ok(existsSync(join(installedPackage, 'docs/usage.md')))
     const entryPoints = Object.keys(manifest.exports)
         .filter(
-            (entry) => entry !== './package.json' && entry !== './tailwind.css',
+            (entry) => entry !== './package.json' && !entry.endsWith('.css'),
         )
         .map(
             (entry) => `${manifest.name}${entry === '.' ? '' : entry.slice(1)}`,
@@ -152,8 +152,10 @@ try {
         `
         import { readFileSync } from 'node:fs'
         for (const entry of ${JSON.stringify(entryPoints)}) await import(entry)
-        const css = import.meta.resolve('${manifest.name}/tailwind.css')
-        if (!readFileSync(new URL(css), 'utf8').trim()) throw new Error('CSS export is empty')
+        for (const entry of ${JSON.stringify(Object.keys(manifest.exports).filter((entry) => entry.endsWith('.css')))}) {
+            const css = import.meta.resolve('${manifest.name}' + entry.slice(1))
+            if (!readFileSync(new URL(css), 'utf8').trim()) throw new Error('CSS export is empty: ' + entry)
+        }
     `,
     ])
     writeFileSync(

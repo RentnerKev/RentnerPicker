@@ -202,3 +202,50 @@ test.describe('picker playground', () => {
             .toBe('dark')
     })
 })
+
+test('keeps focus entering a ShadowRoot popup inside the field boundary', async ({
+    page,
+}) => {
+    await page.goto('/?fixture=shadow-portal')
+    const trigger = page.getByRole('button', {
+        name: 'Shadow color',
+        exact: true,
+    })
+    await trigger.click()
+    await expect(page.getByRole('dialog')).toHaveCount(1)
+    await expect(page.getByTestId('shadow-blurs')).toHaveText('0')
+    await expect
+        .poll(() =>
+            page
+                .getByTestId('shadow-host')
+                .evaluate((host) =>
+                    host.shadowRoot?.activeElement?.getAttribute('aria-label'),
+                ),
+        )
+        .toMatch(/Farbfläche/)
+    await page.keyboard.press('Escape')
+    await expect(trigger).toBeFocused()
+    await expect(page.getByTestId('shadow-blurs')).toHaveText('0')
+    await trigger.click()
+    await page.getByRole('button', { name: 'Outside shadow field' }).click()
+    await expect(page.getByTestId('shadow-blurs')).toHaveText('1')
+})
+
+test('preserves deferred blur event methods when leaving for a sibling shadow control', async ({
+    page,
+}) => {
+    await page.goto('/?fixture=shadow-portal')
+    const trigger = page.getByRole('button', {
+        name: 'Shadow color',
+        exact: true,
+    })
+    await trigger.click()
+    await trigger.focus()
+    await page.getByTestId('shadow-host').evaluate((host) => {
+        const button = document.createElement('button')
+        button.textContent = 'Other shadow control'
+        host.shadowRoot!.append(button)
+        button.focus()
+    })
+    await expect(page.getByTestId('shadow-blurs')).toHaveText('1')
+})

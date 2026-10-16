@@ -47,7 +47,28 @@ export interface CustomColorPickerDesign {
     presetActiveBorder?: string
 }
 
-export interface CustomColorPickerProps extends AriaAttributes {
+export interface PickerClassNames {
+    root?: string
+    label?: string
+    description?: string
+    error?: string
+    control?: string
+    leading?: string
+    trailing?: string
+    input?: string
+    popup?: string
+    presets?: string
+    preset?: string
+}
+export interface PickerPresentationProps {
+    controlSize?: 'sm' | 'md' | 'lg'
+    classNames?: PickerClassNames
+    portalContainer?: Element | DocumentFragment | null
+    portalClassName?: string
+    portalZIndex?: number
+}
+export interface CustomColorPickerProps
+    extends AriaAttributes, PickerPresentationProps {
     id?: string
     name?: string
     value: string
@@ -78,7 +99,7 @@ export type {
     PickerMessages,
 } from '../../../lib/Messages/Types/i18n.types.ts'
 
-export interface PickerProviderProps {
+export interface PickerProviderProps extends PickerPresentationProps {
     children: ReactNode
     locale?: PickerLocale
     messages?: Partial<PickerMessages>
@@ -119,6 +140,11 @@ export interface CustomColorPickerLogicResult {
         setValidationInputRef: (node: HTMLInputElement | null) => void
     }
     state: {
+        classNames: PickerClassNames
+        sizeClassName: string
+        portalContainer: Element | DocumentFragment | null | undefined
+        portalClassName: string | undefined
+        portalZIndex: number | undefined
         fieldId: string
         hasLabel: boolean
         hasDescription: boolean

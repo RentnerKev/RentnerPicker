@@ -27,6 +27,8 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
         className = 'w-full',
     } = props
     const {
+        classNames,
+        sizeClassName,
         fieldId,
         hasLabel,
         hasDescription,
@@ -49,8 +51,10 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                 role="dialog"
                 aria-modal="false"
                 aria-label={messages.selectColor}
-                className={`fixed z-[9999] overflow-y-auto overscroll-contain rounded-xl border p-3 shadow-2xl motion-reduce:animate-none ${design.bg} ${design.border}`}
+                className={`fixed overflow-y-auto overscroll-contain motion-reduce:animate-none ${classNames.popup ?? `rounded-rentner-control border p-3 shadow-2xl ${design.bg} ${design.border}`} ${state.portalClassName ?? ''}`}
                 style={{
+                    zIndex:
+                        state.portalZIndex ?? 'var(--rentner-overlay-z, 9999)',
                     left: `${state.pickerPosition.left}px`,
                     top: `${state.pickerPosition.top}px`,
                     width: `${state.pickerPosition.width}px`,
@@ -75,7 +79,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
                                 disabled={disabled || readOnly}
-                                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+                                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent`}
                                 aria-label={messages.eyeDropper}
                             >
                                 <Pipette className="h-4 w-4" />
@@ -85,7 +89,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                             type="button"
                             onClick={handler.handleClosePicker}
                             disabled={disabled || readOnly}
-                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50`}
+                            className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent`}
                             aria-label={messages.closePicker}
                         >
                             <X className="h-4 w-4" />
@@ -99,7 +103,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                     onPointerDown={handler.handleColorAreaPointer}
                     onPointerMove={handler.handleColorAreaPointerMove}
                     onKeyDown={handler.handleColorAreaKeyDown}
-                    className={`relative h-44 w-full cursor-pointer overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 ${design.previewBorder}`}
+                    className={`relative h-44 w-full cursor-pointer overflow-hidden rounded-xl border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent ${design.previewBorder}`}
                     style={{
                         backgroundColor: state.hueColor,
                         backgroundImage:
@@ -138,7 +142,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                             onChange={handler.handleSaturationChange}
                             disabled={disabled || readOnly}
                             aria-valuetext={`${Math.round(state.hsvColor.saturation)}%`}
-                            className="h-2 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            className="h-2 w-full cursor-pointer accent-rentner-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent"
                         />
                     </label>
                     <label className={`grid gap-1 text-xs ${design.text}`}>
@@ -152,7 +156,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                             onChange={handler.handleBrightnessChange}
                             disabled={disabled || readOnly}
                             aria-valuetext={`${Math.round(state.hsvColor.value)}%`}
-                            className="h-2 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            className="h-2 w-full cursor-pointer accent-rentner-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent"
                         />
                     </label>
                 </div>
@@ -170,7 +174,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                         value={state.hsvColor.hue}
                         onChange={handler.handleHueChange}
                         disabled={disabled || readOnly}
-                        className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,#ef4444,#f59e0b,#f8fafc,#22c55e,#13ecd6,#3f40ad,#ec4899,#ef4444)] accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        className="h-2 min-w-0 flex-1 cursor-pointer appearance-none rounded-full bg-[linear-gradient(to_right,#ef4444,#f59e0b,#f8fafc,#22c55e,#13ecd6,#3f40ad,#ec4899,#ef4444)] accent-rentner-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent"
                         aria-label={messages.hue}
                     />
                 </div>
@@ -181,13 +185,16 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
         <div
             ref={rootRef}
             onBlurCapture={handler.handleFieldBlur}
-            className={`group relative ${className}`}
+            className={`group relative ${classNames.root ?? className}`}
         >
             {hasLabel && (
                 <label
                     id={labelId}
                     htmlFor={fieldId}
-                    className={`mb-1.5 block text-sm font-medium ${design.labelText}`}
+                    className={
+                        classNames.label ??
+                        `mb-1.5 block text-sm font-medium ${design.labelText}`
+                    }
                 >
                     {label}
                 </label>
@@ -215,20 +222,28 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
             />
 
             <div
-                className={`flex min-h-12 w-full items-center gap-3 rounded-xl border px-3 py-2 transition-colors ${
-                    state.hasError
-                        ? `${design.errorBorder} focus-within:ring-2 ${design.errorRing}`
-                        : `${design.border} focus-within:ring-2 ${design.focusRing} ${design.focusBorder}`
-                } ${design.bg} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`flex w-full items-center transition-colors ${sizeClassName || 'min-h-12'} ${
+                    classNames.control ??
+                    `gap-3 rounded-rentner-control border px-3 ${sizeClassName ? 'py-0' : 'py-2'} ${
+                        state.hasError
+                            ? `${design.errorBorder} focus-within:ring-2 ${design.errorRing}`
+                            : `${design.border} focus-within:ring-2 ${design.focusRing} ${design.focusBorder}`
+                    } ${design.bg}`
+                } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
             >
-                <div className="relative flex h-8 w-8 shrink-0 items-center justify-center">
+                <div
+                    className={
+                        classNames.leading ??
+                        'relative flex h-8 w-8 shrink-0 items-center justify-center'
+                    }
+                >
                     {state.hasError ? (
                         <AlertCircle
                             className={`h-5 w-5 ${design.errorText}`}
                         />
                     ) : (
                         <span
-                            className={`flex items-center ${design.iconColor} ${design.iconFocus} transition-colors [&>svg]:h-5 [&>svg]:w-5`}
+                            className={`flex items-center [&>svg]:h-5 [&>svg]:w-5 ${classNames.leading === undefined ? `${design.iconColor} ${design.iconFocus} transition-colors` : ''}`}
                         >
                             {icon || <Palette className="h-5 w-5" />}
                         </span>
@@ -264,7 +279,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                     }
                     aria-expanded={state.isOpen}
                     aria-haspopup={ariaProps['aria-haspopup'] ?? 'dialog'}
-                    className={`h-8 w-11 shrink-0 cursor-pointer rounded-lg border transition-transform motion-safe:active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed ${design.previewBorder}`}
+                    className={`shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed ${classNames.trailing ?? `h-8 w-11 rounded-lg border transition-transform motion-safe:active:scale-95 focus-visible:ring-rentner-accent ${design.previewBorder}`}`}
                     style={{ backgroundColor: state.previewColor }}
                 />
 
@@ -288,7 +303,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                         aria-label={resolvedAriaLabel}
                         aria-labelledby={resolvedLabelledBy}
                         aria-describedby={resolvedDescribedBy}
-                        className={`min-w-0 flex-1 bg-transparent text-sm font-semibold focus-visible:outline-none ${design.text} ${design.placeholder} disabled:cursor-not-allowed`}
+                        className={`min-w-0 flex-1 focus-visible:outline-none disabled:cursor-not-allowed ${classNames.input ?? `bg-transparent text-sm font-semibold ${design.text} ${design.placeholder}`}`}
                     />
                 )}
 
@@ -304,7 +319,10 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
             {hasDescription && (
                 <p
                     id={descriptionId}
-                    className={`mt-1 text-xs ${design.descriptionText}`}
+                    className={
+                        classNames.description ??
+                        `mt-1 text-xs ${design.descriptionText}`
+                    }
                 >
                     {description}
                 </p>
@@ -314,18 +332,28 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                 <p
                     id={errorId}
                     role="alert"
-                    className={`mt-1 text-xs font-semibold ${design.errorText}`}
+                    className={
+                        classNames.error ??
+                        `mt-1 text-xs font-semibold ${design.errorText}`
+                    }
                 >
                     {state.error}
                 </p>
             )}
 
             {typeof document !== 'undefined' && pickerPopup
-                ? createPortal(pickerPopup, document.body)
+                ? createPortal(
+                      pickerPopup,
+                      state.portalContainer ?? document.body,
+                  )
                 : null}
 
             {showPresets && presetEntries.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div
+                    className={
+                        classNames.presets ?? 'mt-2 flex flex-wrap gap-2'
+                    }
+                >
                     {presetEntries.map(({ preset, isActive }) => {
                         return (
                             <button
@@ -337,10 +365,13 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                                 disabled={disabled || readOnly}
                                 aria-label={messages.presetColor(preset)}
                                 aria-pressed={isActive}
-                                className={`h-7 w-7 cursor-pointer rounded-lg border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:cursor-not-allowed ${
-                                    isActive
-                                        ? `ring-2 ring-offset-2 ring-offset-background-dark ${design.presetActiveBorder}`
-                                        : design.presetBorder
+                                className={`cursor-pointer focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed ${
+                                    classNames.preset ??
+                                    `h-7 w-7 rounded-lg border transition-colors focus-visible:ring-rentner-accent ${
+                                        isActive
+                                            ? `ring-2 ring-offset-2 ring-offset-background-dark ${design.presetActiveBorder}`
+                                            : design.presetBorder
+                                    }`
                                 }`}
                                 style={{ backgroundColor: preset }}
                             />

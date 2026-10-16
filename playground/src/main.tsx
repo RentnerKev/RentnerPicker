@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColorPicker.tsx'
+import { ShadowPortalFixture } from './Components/ShadowPortalFixture.tsx'
 import { App } from './App.tsx'
 // oxlint-disable-next-line import/no-unassigned-import -- The Vite entry deliberately loads the playground stylesheet.
 import './index.css'
@@ -24,9 +25,15 @@ function ReadOnlyPickerFixture() {
 
 function PlaygroundRoot() {
     const {
-        state: { readOnly },
+        state: { readOnly, shadowPortal },
     } = usePlaygroundRootLogic()
-    return readOnly ? <ReadOnlyPickerFixture /> : <App />
+    return shadowPortal ? (
+        <ShadowPortalFixture />
+    ) : readOnly ? (
+        <ReadOnlyPickerFixture />
+    ) : (
+        <App />
+    )
 }
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
