@@ -7,6 +7,7 @@ import type {
     RefCallback,
     ChangeEvent,
     KeyboardEvent,
+    MouseEvent,
     PointerEvent,
     InvalidEvent,
     Dispatch,
@@ -173,6 +174,7 @@ export interface CustomColorPickerLogicResult {
     }
     handler: {
         handleFieldBlur: FocusEventHandler<HTMLElement>
+        handleTriggerMouseDown: (event: MouseEvent<HTMLButtonElement>) => void
         handleClosePicker: () => void
         handleBrightnessChange: (event: ChangeEvent<HTMLInputElement>) => void
         handleColorAreaKeyDown: (

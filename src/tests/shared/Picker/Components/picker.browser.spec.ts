@@ -227,6 +227,7 @@ test('keeps focus entering a ShadowRoot popup inside the field boundary', async 
     await expect(trigger).toBeFocused()
     await expect(page.getByTestId('shadow-blurs')).toHaveText('0')
     await trigger.click()
+    await expect(page.getByTestId('shadow-blurs')).toHaveText('0')
     await page.getByRole('button', { name: 'Outside shadow field' }).click()
     await expect(page.getByTestId('shadow-blurs')).toHaveText('1')
 })

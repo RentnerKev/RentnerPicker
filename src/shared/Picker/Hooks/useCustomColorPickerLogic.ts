@@ -14,6 +14,7 @@ import type {
     InvalidEvent,
     FocusEvent,
     KeyboardEvent,
+    MouseEvent,
     PointerEvent,
 } from 'react'
 import {
@@ -97,6 +98,13 @@ const defaultPresets = [
     '#f8fafc',
     '#111827',
 ]
+
+function handleTriggerMouseDown(event: MouseEvent<HTMLButtonElement>) {
+    // WebKit otherwise blurs an already focused button before its click.
+    if (event.button === 0 && event.currentTarget.matches(':focus')) {
+        event.preventDefault()
+    }
+}
 
 export default function useCustomColorPickerLogic({
     value,
@@ -947,6 +955,7 @@ export default function useCustomColorPickerLogic({
         },
         handler: {
             handleFieldBlur,
+            handleTriggerMouseDown,
             handleClosePicker,
             handleBrightnessChange,
             handleColorAreaKeyDown,

@@ -255,6 +255,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                     ref={setTriggerRef}
                     type="button"
                     onClick={handler.togglePicker}
+                    onMouseDown={handler.handleTriggerMouseDown}
                     disabled={disabled}
                     {...ariaProps}
                     aria-disabled={
