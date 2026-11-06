@@ -8,6 +8,7 @@ export interface PickerMessages {
     colorArea: string
     colorAreaInstructions?: string
     colorAreaValue?: (saturation: number, value: number) => string
+    opacity?: string
     hue: string
     saturation?: string
     brightness?: string

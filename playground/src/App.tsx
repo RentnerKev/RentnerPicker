@@ -5,13 +5,20 @@ import { CustomColorPicker } from '../../src/shared/Picker/Components/CustomColo
 export function App() {
     const {
         state: {
+            alphaColor,
             brandColor,
             brandBlurred,
             accentColor,
             rgbColor,
             compactColor,
         },
-        setter: { setBrandColor, setAccentColor, setRgbColor, setCompactColor },
+        setter: {
+            setAlphaColor,
+            setBrandColor,
+            setAccentColor,
+            setRgbColor,
+            setCompactColor,
+        },
         handler: { handleSubmit, handleBrandBlur },
     } = usePlaygroundLogic()
     return (
@@ -88,6 +95,17 @@ export function App() {
                             '#22c55e',
                             '#f59e0b',
                         ]}
+                    />
+
+                    <CustomColorPicker
+                        id="alpha-color"
+                        name="alphaColor"
+                        label="Transparente Farbe"
+                        value={alphaColor}
+                        onValueChange={setAlphaColor}
+                        enableAlpha
+                        format="rgba"
+                        showPresets={false}
                     />
 
                     <div className="rounded-xl border border-border-dark bg-surface-dark p-4">

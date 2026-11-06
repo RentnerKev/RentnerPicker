@@ -23,10 +23,14 @@ import {
     getHsvFromValue,
     hsvToRgb,
     normalizeColor,
+    parseColor,
     rgbToHex,
     toPickerHex,
 } from '../../../lib/Color/color.ts'
-import type { HsvColor } from '../../../lib/Color/Types/color.types.ts'
+import type {
+    ColorFormat,
+    HsvColor,
+} from '../../../lib/Color/Types/color.types.ts'
 import { getColorError } from '../../../lib/Color/colorValidation.ts'
 import { mergeAriaIds, resolveFieldError } from '../../../lib/Field/field.ts'
 import { usePickerDefaults, usePickerMessages } from './usePickerContext.ts'
@@ -75,17 +79,20 @@ function isSameColorValue(left: string, right: string) {
         return true
     }
 
-    const normalizedLeft = normalizeColor(left)
+    const normalizedLeft = parseColor(left)
 
-    return normalizedLeft !== null && normalizedLeft === normalizeColor(right)
+    return (
+        normalizedLeft !== null &&
+        formatColor(left, 'rgba') === formatColor(right, 'rgba')
+    )
 }
 
-function getCommittedValue(value: string, format: 'hex' | 'rgb') {
+function getCommittedValue(value: string, format: ColorFormat) {
     if (!value.trim()) {
         return ''
     }
 
-    return formatColor(toPickerHex(value), format)
+    return formatColor(value, format)
 }
 
 const defaultPresets = [
@@ -111,7 +118,8 @@ export default function useCustomColorPickerLogic({
     onValueChange,
     onValidityChange,
     required,
-    format = 'hex',
+    format: providedFormat = 'hex',
+    enableAlpha: providedEnableAlpha = false,
     messages: providedMessages,
     locale: providedLocale,
     error: externalError,
@@ -140,6 +148,15 @@ export default function useCustomColorPickerLogic({
     className: _className,
     ...ariaProps
 }: CustomColorPickerProps): CustomColorPickerLogicResult {
+    const enableAlpha =
+        providedEnableAlpha ||
+        providedFormat === 'rgba' ||
+        providedFormat === 'hex8'
+    const format = enableAlpha
+        ? providedFormat === 'rgb' || providedFormat === 'rgba'
+            ? 'rgba'
+            : 'hex8'
+        : providedFormat
     const defaults = usePickerDefaults()
     const classNames = { ...defaults.classNames, ...providedClassNames }
     const size = controlSize ?? defaults.controlSize
@@ -168,7 +185,8 @@ export default function useCustomColorPickerLogic({
         draftValue: string
         safeValue: string
         required: boolean | undefined
-        format: 'hex' | 'rgb'
+        format: ColorFormat
+        enableAlpha: boolean
         messages: PickerMessages
         externalError: string | null | undefined
         disabled: boolean
@@ -179,6 +197,7 @@ export default function useCustomColorPickerLogic({
         safeValue,
         required,
         format,
+        enableAlpha,
         messages,
         externalError,
         disabled,
@@ -221,7 +240,12 @@ export default function useCustomColorPickerLogic({
         nextHsvColor: HsvColor
         reconciled: boolean
     } | null>(null)
-    const internalError = getColorError(draftValue, required, messages)
+    const internalError = getColorError(
+        draftValue,
+        required,
+        messages,
+        enableAlpha,
+    )
     const { error, hasError } = resolveFieldError(
         internalError,
         externalError,
@@ -298,13 +322,16 @@ export default function useCustomColorPickerLogic({
     const resolvedAriaLabel =
         ariaLabel ?? (resolvedLabelledBy ? undefined : messages.selectColor)
     const presetEntries = useMemo(() => {
-        const activeColor = normalizeColor(safeValue)
+        const activeColor = normalizeColor(safeValue, enableAlpha)
         return presets.map((preset) => ({
             preset,
             isActive:
-                activeColor !== null && activeColor === normalizeColor(preset),
+                activeColor !== null &&
+                (enableAlpha
+                    ? isSameColorValue(safeValue, preset)
+                    : activeColor === normalizeColor(preset)),
         }))
-    }, [presets, safeValue])
+    }, [presets, safeValue, enableAlpha])
     const selectedHex = useMemo(() => rgbToHex(hsvToRgb(hsvColor)), [hsvColor])
     const hueColor = useMemo(
         () =>
@@ -317,9 +344,14 @@ export default function useCustomColorPickerLogic({
             ),
         [hsvColor.hue],
     )
+    const alpha = enableAlpha
+        ? (parseColor(draftValue || safeValue)?.alpha ?? 1)
+        : 1
+    const selectedRgb = hsvToRgb(hsvColor)
+    const alphaColor = `rgba(${selectedRgb.red}, ${selectedRgb.green}, ${selectedRgb.blue}, ${alpha})`
     const previewColor = error
-        ? toPickerHex(safeValue)
-        : toPickerHex(draftValue || selectedHex)
+        ? toPickerHex(safeValue, enableAlpha)
+        : toPickerHex(draftValue || selectedHex, enableAlpha)
 
     if ((disabled || readOnly) && isOpen) {
         setIsOpen(false)
@@ -413,6 +445,7 @@ export default function useCustomColorPickerLogic({
                 currentState.draftValue,
                 currentState.required,
                 currentState.messages,
+                currentState.enableAlpha,
             )
 
             if (currentState.disabled || currentState.readOnly) {
@@ -582,7 +615,11 @@ export default function useCustomColorPickerLogic({
             current.value === nextHsvColor.value
         )
             return
-        commitHex(rgbToHex(hsvToRgb(nextHsvColor)), nextHsvColor)
+        const rgb = hsvToRgb(nextHsvColor)
+        const nextColor = enableAlpha
+            ? `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${parseColor(requestedValueRef.current)?.alpha ?? 1})`
+            : rgbToHex(rgb)
+        commitHex(nextColor, nextHsvColor)
     }
 
     const commitColor = useCallback(
@@ -593,6 +630,7 @@ export default function useCustomColorPickerLogic({
                 nextValue,
                 required,
                 messages,
+                enableAlpha,
             )
             setDraftValue(nextValue)
 
@@ -619,8 +657,7 @@ export default function useCustomColorPickerLogic({
                 return
             }
 
-            const nextHex = toPickerHex(nextValue)
-            const formattedValue = formatColor(nextHex, format)
+            const formattedValue = formatColor(nextValue, format)
 
             if (isSameColorValue(safeValue, formattedValue)) {
                 setDraftValue(safeValue)
@@ -628,12 +665,13 @@ export default function useCustomColorPickerLogic({
                 return
             }
 
-            commitHex(nextHex)
+            commitHex(formattedValue)
         },
         [
             commitHex,
             disabled,
             format,
+            enableAlpha,
             messages,
             onValueChange,
             readOnly,
@@ -655,6 +693,7 @@ export default function useCustomColorPickerLogic({
                 safeValue,
                 required,
                 format,
+                enableAlpha,
                 messages,
                 externalError,
                 disabled,
@@ -671,6 +710,7 @@ export default function useCustomColorPickerLogic({
             error,
             externalError,
             format,
+            enableAlpha,
             messages,
             readOnly,
             required,
@@ -687,7 +727,7 @@ export default function useCustomColorPickerLogic({
         const nextError =
             externalError !== undefined
                 ? externalError
-                : getColorError(nextValue, required, messages)
+                : getColorError(nextValue, required, messages, enableAlpha)
 
         setDraftValue(nextValue)
 
@@ -822,6 +862,16 @@ export default function useCustomColorPickerLogic({
         }
 
         commitHsvColor(nextHsvColor)
+    }
+
+    function handleAlphaChange(event: ChangeEvent<HTMLInputElement>) {
+        if (disabled || readOnly || !enableAlpha) return
+        const rgb = hsvToRgb(currentHsvRef.current)
+        const nextAlpha = clamp(Number(event.target.value), 0, 100) / 100
+        commitHex(
+            `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${nextAlpha})`,
+            currentHsvRef.current,
+        )
     }
 
     function handleHueChange(event: ChangeEvent<HTMLInputElement>) {
@@ -962,6 +1012,7 @@ export default function useCustomColorPickerLogic({
             handleColorAreaPointer,
             handleColorAreaPointerMove,
             handleEyeDropperClick,
+            handleAlphaChange,
             handleHueChange,
             handleInvalid,
             handlePresetClick,
@@ -995,6 +1046,9 @@ export default function useCustomColorPickerLogic({
             draftValue,
             error,
             hasError,
+            alpha,
+            alphaColor,
+            enableAlpha,
             hueColor,
             hsvColor,
             isEyeDropperSupported,

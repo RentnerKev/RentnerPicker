@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test'
 import {
     hexToRgb,
+    parseColor,
+    rgbaToHex,
+    formatColor,
     isValidColor,
     normalizeColor,
 } from '../../../lib/Color/color.ts'
@@ -64,5 +67,59 @@ describe('color utilities', () => {
         expect(hsv.saturation).toBeCloseTo((68 / 239) * 100, 10)
         expect(hsv.value).toBeCloseTo((239 / 255) * 100, 10)
         expect(rgbToHex(hsvToRgb(hsv))).toBe('#abcdef')
+    })
+})
+
+describe('alpha color utilities', () => {
+    test('parses alpha hex and rgba without changing legacy validation', () => {
+        expect(parseColor('#f008')).toEqual({
+            red: 255,
+            green: 0,
+            blue: 0,
+            alpha: 136 / 255,
+        })
+        expect(parseColor('rgba(12, 34, 56, .5)')).toEqual({
+            red: 12,
+            green: 34,
+            blue: 56,
+            alpha: 0.5,
+        })
+        expect(parseColor('rgb(12, 34, 56)')?.alpha).toBe(1)
+        expect(normalizeColor('#aBcD', true)).toBe('#aabbccdd')
+        expect(normalizeColor('rgba(0, 127, 255, 0)', true)).toBe('#007fff00')
+        expect(normalizeColor('#fff', true)).toBe('#ffffffff')
+        expect(isValidColor('rgba(0, 0, 0, 0.5)')).toBeFalse()
+        expect(isValidColor('rgba(0, 0, 0, 0.5)', true)).toBeTrue()
+    })
+
+    test('rejects invalid alpha and channels rather than clamping text', () => {
+        for (const color of [
+            '#12345',
+            '#123456789',
+            'rgba(256, 0, 0, .5)',
+            'rgba(0, 0, 0, -1)',
+            'rgba(0, 0, 0, 1.1)',
+            'rgba(0, 0, 0, NaN)',
+            'rgba(0, 0, 0, 50%)',
+        ]) {
+            expect(parseColor(color)).toBeNull()
+            expect(isValidColor(color, true)).toBeFalse()
+        }
+    })
+
+    test('formats alpha endpoints, rounds hex bytes and retains rgba precision', () => {
+        expect(rgbaToHex({ red: 255, green: 0, blue: 128, alpha: 0.5 })).toBe(
+            '#ff008080',
+        )
+        expect(
+            parseColor(formatColor('rgba(1, 2, 3, 0.00000001)', 'rgba'))?.alpha,
+        ).toBe(0.00000001)
+        expect(formatColor('#1230', 'rgba')).toBe('rgba(17, 34, 51, 0)')
+        expect(formatColor('#123f', 'rgba')).toBe('rgba(17, 34, 51, 1)')
+        expect(formatColor('rgba(12, 34, 56, 0.5)', 'rgba')).toBe(
+            'rgba(12, 34, 56, 0.5)',
+        )
+        expect(formatColor('rgba(12, 34, 56, 0.5)', 'hex8')).toBe('#0c223880')
+        expect(getHsvFromValue('#ff000080').hue).toBe(0)
     })
 })

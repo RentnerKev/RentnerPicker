@@ -5,6 +5,7 @@ export function getColorError(
     value: string,
     required: boolean | undefined,
     messages: PickerMessages,
+    enableAlpha = false,
 ) {
     const trimmedValue = value.trim()
 
@@ -16,5 +17,7 @@ export function getColorError(
         return null
     }
 
-    return isValidColor(trimmedValue) ? null : messages.invalidColor
+    return isValidColor(trimmedValue, enableAlpha)
+        ? null
+        : messages.invalidColor
 }

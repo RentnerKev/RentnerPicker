@@ -1,4 +1,9 @@
-import type { HsvColor, ColorFormat, RgbColor } from './Types/color.types.ts'
+import type {
+    HsvColor,
+    ColorFormat,
+    RgbColor,
+    RgbaColor,
+} from './Types/color.types.ts'
 export type { HsvColor } from './Types/color.types.ts'
 
 const hexColorPattern = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
@@ -46,6 +51,46 @@ function parseRgb(value: string): RgbColor | null {
     return { red, green, blue }
 }
 
+/** Parses supported RGB/RGBA and three-, four-, six- or eight-digit HEX. */
+export function parseColor(value: string): RgbaColor | null {
+    const opaque = normalizeHex(value)
+    if (opaque) {
+        const rgb = hexToRgb(opaque)
+        return rgb ? { ...rgb, alpha: 1 } : null
+    }
+    const hex = value.trim().match(/^#?([0-9a-f]{4}|[0-9a-f]{8})$/i)?.[1]
+    if (hex) {
+        const expanded =
+            hex.length === 4
+                ? [...hex].map((digit) => digit + digit).join('')
+                : hex
+        const rgb = hexToRgb(expanded.slice(0, 6))
+        return rgb
+            ? { ...rgb, alpha: parseInt(expanded.slice(6), 16) / 255 }
+            : null
+    }
+    const rgb = parseRgb(value)
+    if (rgb) return { ...rgb, alpha: 1 }
+    const rgba = value
+        .trim()
+        .match(
+            /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*\)$/i,
+        )
+    if (!rgba) return null
+    const [red, green, blue, alpha] = rgba.slice(1).map(Number)
+    return [red, green, blue].some((channel) => channel > 255) ||
+        !Number.isFinite(alpha) ||
+        alpha > 1
+        ? null
+        : { red, green, blue, alpha }
+}
+
+export function rgbaToHex({ alpha, ...rgb }: RgbaColor): string {
+    return `${rgbToHex(rgb)}${clamp(Math.round(alpha * 255), 0, 255)
+        .toString(16)
+        .padStart(2, '0')}`
+}
+
 export function rgbToHex({ red, green, blue }: RgbColor) {
     return `#${[red, green, blue]
         .map((channel) =>
@@ -75,9 +120,17 @@ export function hexToRgb(value: string): RgbColor | null {
 /**
  * Normalizes supported HEX and `rgb(r, g, b)` values to lowercase six-digit
  * HEX. The leading hash is optional for HEX input. Invalid values return
- * `null` instead of silently falling back to another color.
+ * `null` instead of silently falling back to another color. With enableAlpha,
+ * RGBA and alpha HEX input are accepted and normalized to eight-digit HEX.
  */
-export function normalizeColor(value: string): string | null {
+export function normalizeColor(
+    value: string,
+    enableAlpha = false,
+): string | null {
+    if (enableAlpha) {
+        const rgba = parseColor(value)
+        return rgba ? rgbaToHex(rgba) : null
+    }
     const normalizedHex = normalizeHex(value)
 
     if (normalizedHex) {
@@ -89,8 +142,8 @@ export function normalizeColor(value: string): string | null {
     return rgb ? rgbToHex(rgb) : null
 }
 
-export function isValidColor(value: string) {
-    return normalizeColor(value) !== null
+export function isValidColor(value: string, enableAlpha = false) {
+    return normalizeColor(value, enableAlpha) !== null
 }
 
 export function rgbToHsv({ red, green, blue }: RgbColor): HsvColor {
@@ -159,28 +212,22 @@ export function hsvToRgb({ hue, saturation, value }: HsvColor): RgbColor {
     }
 }
 
-export function toPickerHex(value: string) {
-    return normalizeColor(value) ?? defaultPickerColor
+export function toPickerHex(value: string, enableAlpha = false) {
+    return normalizeColor(value, enableAlpha) ?? defaultPickerColor
 }
 
 export function formatColor(value: string, format: ColorFormat) {
-    const normalizedColor = normalizeColor(value)
-
-    if (!normalizedColor) {
-        return value
-    }
-
-    if (format === 'rgb') {
-        const rgb = hexToRgb(normalizedColor)
-
-        return rgb ? `rgb(${rgb.red}, ${rgb.green}, ${rgb.blue})` : value
-    }
-
-    return normalizedColor
+    const rgba = parseColor(value)
+    if (!rgba) return value
+    if (format === 'rgba')
+        return `rgba(${rgba.red}, ${rgba.green}, ${rgba.blue}, ${rgba.alpha})`
+    if (format === 'hex8') return rgbaToHex(rgba)
+    if (format === 'rgb') return `rgb(${rgba.red}, ${rgba.green}, ${rgba.blue})`
+    return rgbToHex(rgba)
 }
 
 export function getHsvFromValue(value: string): HsvColor {
-    const rgb = hexToRgb(toPickerHex(value))
+    const rgb = parseColor(value) ?? hexToRgb(defaultPickerColor)
 
     return rgb ? rgbToHsv(rgb) : { hue: 176, saturation: 92, value: 93 }
 }

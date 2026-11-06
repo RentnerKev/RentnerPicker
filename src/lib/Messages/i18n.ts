@@ -10,6 +10,7 @@ const germanMessages: PickerMessages = {
         'Die Schieberegler ändern Sättigung und Helligkeit. In der Farbfläche ändern Pfeiltasten beide Werte; mit Umschalt oder Bildtasten sind größere Schritte möglich.',
     colorAreaValue: (saturation, value) =>
         `Farbfläche, Sättigung ${saturation} Prozent, Helligkeit ${value} Prozent`,
+    opacity: 'Deckkraft',
     hue: 'Farbton',
     saturation: 'Sättigung',
     brightness: 'Helligkeit',
@@ -27,6 +28,7 @@ const englishMessages: PickerMessages = {
         'Use the sliders to change saturation and brightness. Arrow keys also change both values in the color area; use Shift or Page keys for larger steps.',
     colorAreaValue: (saturation, value) =>
         `Color area, saturation ${saturation} percent, brightness ${value} percent`,
+    opacity: 'Opacity',
     hue: 'Hue',
     saturation: 'Saturation',
     brightness: 'Brightness',

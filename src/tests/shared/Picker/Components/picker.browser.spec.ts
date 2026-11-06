@@ -250,3 +250,38 @@ test('preserves deferred blur event methods when leaving for a sibling shadow co
     })
     await expect(page.getByTestId('shadow-blurs')).toHaveText('1')
 })
+
+test('edits alpha with native keyboard sliders and submits the rgba value', async ({
+    page,
+}) => {
+    await page.goto('/')
+    await page.locator('#alpha-color').click()
+    const dialog = page.getByRole('dialog')
+    const opacity = dialog.getByRole('slider', { name: 'Deckkraft' })
+    await expect(opacity).toHaveAttribute('aria-valuetext', '50%')
+    await opacity.focus()
+    await opacity.press('Home')
+    await expect(opacity).toHaveValue('0')
+    const text = page.getByRole('textbox', { name: 'Transparente Farbe' })
+    await expect(text).toHaveValue('rgba(19, 236, 214, 0)')
+    await dialog.getByRole('button', { name: /Farbfläche/ }).press('ArrowLeft')
+    await expect(text).toHaveValue(/, 0\)$/)
+    await opacity.focus()
+    await opacity.press('End')
+    await expect(opacity).toHaveValue('100')
+    await opacity.press('ArrowLeft')
+    await expect(opacity).toHaveValue('99')
+    await expect(opacity).toHaveAttribute('aria-valuetext', '99%')
+    await opacity.press('Escape')
+    await expect(page.locator('#alpha-color')).toBeFocused()
+    await text.fill('#1234')
+    await text.press('Tab')
+    await expect(text).toHaveValue('rgba(17, 34, 51, 0.26666666666666666)')
+    expect(
+        await page
+            .locator('form')
+            .evaluate((form) =>
+                new FormData(form as HTMLFormElement).get('alphaColor'),
+            ),
+    ).toBe('rgba(17, 34, 51, 0.26666666666666666)')
+})

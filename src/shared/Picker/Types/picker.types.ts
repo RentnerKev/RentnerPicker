@@ -25,6 +25,7 @@ import type {
 export type {
     ColorFormat,
     RgbColor,
+    RgbaColor,
 } from '../../../lib/Color/Types/color.types.ts'
 export type ColorValidityChangeHandler = (isValid: boolean) => void
 
@@ -84,6 +85,8 @@ export interface CustomColorPickerProps
     error?: string | null
     triggerRef?: Ref<HTMLButtonElement>
     placeholder?: string
+    /** Enables opacity editing; hex/rgb output becomes hex8/rgba. */
+    enableAlpha?: boolean
     format?: ColorFormat
     presets?: string[]
     showInput?: boolean
@@ -162,6 +165,9 @@ export interface CustomColorPickerLogicResult {
         draftValue: string
         error: string | null
         hasError: boolean
+        enableAlpha: boolean
+        alpha: number
+        alphaColor: string
         hueColor: string
         hsvColor: HsvColor
         isEyeDropperSupported: boolean
@@ -176,6 +182,7 @@ export interface CustomColorPickerLogicResult {
         handleFieldBlur: FocusEventHandler<HTMLElement>
         handleTriggerMouseDown: (event: MouseEvent<HTMLButtonElement>) => void
         handleClosePicker: () => void
+        handleAlphaChange: (event: ChangeEvent<HTMLInputElement>) => void
         handleBrightnessChange: (event: ChangeEvent<HTMLInputElement>) => void
         handleColorAreaKeyDown: (
             event: KeyboardEvent<HTMLButtonElement>,

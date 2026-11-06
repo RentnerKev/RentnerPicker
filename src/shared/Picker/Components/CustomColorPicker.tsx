@@ -65,7 +65,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                     <div className="flex min-w-0 items-center gap-3">
                         <div
                             className={`h-9 w-9 shrink-0 rounded-lg border ${design.previewBorder}`}
-                            style={{ backgroundColor: state.selectedHex }}
+                            style={{ backgroundColor: state.alphaColor }}
                         />
                         <span
                             className={`min-w-0 truncate text-sm font-semibold ${design.text}`}
@@ -161,10 +161,30 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                     </label>
                 </div>
 
+                {state.enableAlpha && (
+                    <label className={`mt-3 grid gap-1 text-xs ${design.text}`}>
+                        <span>{messages.opacity}</span>
+                        <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={1}
+                            value={state.alpha * 100}
+                            onChange={handler.handleAlphaChange}
+                            disabled={disabled || readOnly}
+                            aria-valuetext={`${Math.round(state.alpha * 100)}%`}
+                            className="h-2 w-full cursor-pointer accent-rentner-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent"
+                            style={{
+                                backgroundImage: `linear-gradient(to right, transparent, ${state.selectedHex})`,
+                            }}
+                        />
+                    </label>
+                )}
+
                 <div className="mt-3 flex items-center gap-3">
                     <div
                         className={`h-7 w-7 shrink-0 rounded-lg border ${design.previewBorder}`}
-                        style={{ backgroundColor: state.selectedHex }}
+                        style={{ backgroundColor: state.alphaColor }}
                     />
                     <input
                         type="range"

@@ -65,3 +65,21 @@ const pickerAdapterUsage = (
     />
 )
 void pickerAdapterUsage
+
+import { parseColor, rgbaToHex, formatColor } from '../../index.ts'
+import type { RgbaColor, ColorFormat } from '../../index.ts'
+const rgba: RgbaColor | null = parseColor('#1234')
+const alphaFormats: ColorFormat[] = ['hex8', 'rgba']
+const alphaPicker: CustomColorPickerProps = {
+    value: rgba ? rgbaToHex(rgba) : '',
+    onValueChange: () => undefined,
+    enableAlpha: true,
+    format: 'hex8',
+}
+const formattedAlpha: string = formatColor('#1234', 'rgba')
+void alphaFormats
+void alphaPicker
+void formattedAlpha
+// @ts-expect-error Alpha must be numeric.
+const invalidRgba: RgbaColor = { red: 1, green: 2, blue: 3, alpha: '0.5' }
+void invalidRgba

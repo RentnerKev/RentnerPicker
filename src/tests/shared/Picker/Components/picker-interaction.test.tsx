@@ -1428,3 +1428,192 @@ test('form adapter retains invalid draft validity alongside committed value', as
     fireEvent.blur(input)
     expect(changes).toEqual([])
 })
+
+function AlphaPickerFixture({
+    format = 'rgba',
+    readOnly = false,
+}: {
+    format?: 'hex' | 'rgba'
+    readOnly?: boolean
+}) {
+    const [value, setValue] = useState('rgba(12, 34, 56, 0.5)')
+    return (
+        <form aria-label="alpha form">
+            <CustomColorPicker
+                name="color"
+                locale="en"
+                enableAlpha
+                format={format}
+                value={value}
+                onValueChange={setValue}
+                readOnly={readOnly}
+                presets={['#ff000040', '#ffffff']}
+            />
+        </form>
+    )
+}
+
+describe('alpha picker', () => {
+    test('preserves opacity through HSV edits, accepts transparent text and commits presets to the form', () => {
+        render(<AlphaPickerFixture />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select color' }))
+        const opacity = screen.getByRole('slider', {
+            name: 'Opacity',
+        }) as HTMLInputElement
+        expect(opacity.valueAsNumber).toBe(50)
+        fireEvent.change(screen.getByRole('slider', { name: 'Hue' }), {
+            target: { value: '90' },
+        })
+        expect(screen.getByRole('textbox').getAttribute('value')).toEndWith(
+            ', 0.5)',
+        )
+        fireEvent.change(opacity, { target: { value: '0' } })
+        expect(
+            new FormData(screen.getByRole('form') as HTMLFormElement).get(
+                'color',
+            ),
+        ).toEndWith(', 0)')
+        const text = screen.getByRole('textbox')
+        fireEvent.change(text, { target: { value: '#abcd' } })
+        fireEvent.blur(text)
+        expect(
+            new FormData(screen.getByRole('form') as HTMLFormElement).get(
+                'color',
+            ),
+        ).toBe('rgba(170, 187, 204, 0.8666666666666667)')
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Select color #ff000040' }),
+        )
+        expect(
+            new FormData(screen.getByRole('form') as HTMLFormElement).get(
+                'color',
+            ),
+        ).toBe('rgba(255, 0, 0, 0.25098039215686274)')
+        expect(
+            screen
+                .getByRole('button', { name: 'Select color #ff000040' })
+                .getAttribute('aria-pressed'),
+        ).toBe('true')
+    })
+
+    test('upgrades hex output only when alpha is enabled and respects rejected controlled edits', async () => {
+        const values: string[] = []
+        render(
+            <CustomColorPicker
+                enableAlpha
+                locale="en"
+                value="#ff000080"
+                onValueChange={(value) => values.push(value)}
+            />,
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Select color' }))
+        fireEvent.change(screen.getByRole('slider', { name: 'Opacity' }), {
+            target: { value: '0' },
+        })
+        expect(values).toEqual(['#ff000000'])
+        await waitFor(() =>
+            expect(
+                (
+                    screen.getByRole('slider', {
+                        name: 'Opacity',
+                    }) as HTMLInputElement
+                ).valueAsNumber,
+            ).toBeCloseTo((128 / 255) * 100),
+        )
+    })
+
+    test('validates alpha drafts and hides opacity editing by default and in read-only mode', () => {
+        const { rerender } = render(
+            <CustomColorPicker
+                locale="en"
+                value="#ff0000"
+                onValueChange={() => undefined}
+            />,
+        )
+        fireEvent.click(screen.getByRole('button', { name: 'Select color' }))
+        expect(screen.queryByRole('slider', { name: 'Opacity' })).toBeNull()
+        rerender(<AlphaPickerFixture />)
+        const text = screen.getByRole('textbox')
+        fireEvent.change(text, { target: { value: 'rgba(0, 0, 0, 2)' } })
+        fireEvent.blur(text)
+        expect(screen.getByRole('alert')).toBeTruthy()
+        expect(
+            new FormData(screen.getByRole('form') as HTMLFormElement).get(
+                'color',
+            ),
+        ).toBe('rgba(12, 34, 56, 0.5)')
+        rerender(<AlphaPickerFixture readOnly />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select color' }))
+        expect(screen.queryByRole('slider', { name: 'Opacity' })).toBeNull()
+    })
+})
+
+test('eyedropper selection replaces a transparent value with an opaque color', async () => {
+    const original = Object.getOwnPropertyDescriptor(window, 'EyeDropper')
+    Object.defineProperty(window, 'EyeDropper', {
+        configurable: true,
+        value: class {
+            async open() {
+                return { sRGBHex: '#abcdef' }
+            }
+        },
+    })
+    try {
+        render(<AlphaPickerFixture />)
+        fireEvent.click(screen.getByRole('button', { name: 'Select color' }))
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Select color with eyedropper',
+            }),
+        )
+        await waitFor(() =>
+            expect(
+                new FormData(screen.getByRole('form') as HTMLFormElement).get(
+                    'color',
+                ),
+            ).toBe('rgba(171, 205, 239, 1)'),
+        )
+    } finally {
+        if (original) Object.defineProperty(window, 'EyeDropper', original)
+        else Reflect.deleteProperty(window, 'EyeDropper')
+    }
+})
+
+test('reconciles a valid alpha draft before native form submission', async () => {
+    const submitted: unknown[] = []
+    render(<AlphaPickerFixture />)
+    const form = screen.getByRole('form') as HTMLFormElement
+    form.addEventListener('submit', (event) => {
+        event.preventDefault()
+        submitted.push(new FormData(form).get('color'))
+    })
+    fireEvent.change(screen.getByRole('textbox'), {
+        target: { value: '#1230' },
+    })
+    act(() => form.requestSubmit())
+    await waitFor(() => expect(submitted).toEqual(['rgba(17, 34, 51, 0)']))
+})
+
+test('compares alpha presets without rounding different opacity values to the same byte', () => {
+    render(
+        <CustomColorPicker
+            locale="en"
+            format="rgba"
+            value="rgba(1, 2, 3, 0.5)"
+            onValueChange={() => undefined}
+            presets={['rgba(1, 2, 3, 0.5)', 'rgba(1, 2, 3, 0.500001)']}
+        />,
+    )
+    expect(
+        screen
+            .getByRole('button', { name: 'Select color rgba(1, 2, 3, 0.5)' })
+            .getAttribute('aria-pressed'),
+    ).toBe('true')
+    expect(
+        screen
+            .getByRole('button', {
+                name: 'Select color rgba(1, 2, 3, 0.500001)',
+            })
+            .getAttribute('aria-pressed'),
+    ).toBe('false')
+})
