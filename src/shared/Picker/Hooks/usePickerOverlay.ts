@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+    useCallback,
+    useEffect,
+    useLayoutEffect,
+    useRef,
+    useState,
+} from 'react'
 import { clamp } from '../../../lib/Color/color.ts'
 import {
     getAncestorShadowRoots,
@@ -29,7 +35,11 @@ export default function usePickerOverlay({
         setPopup(node)
         if (!node) setMeasurement(null)
     }, [])
-    const isPositioned = isOpen && popup !== null && measurement?.popup === popup && measurement.ready
+    const isPositioned =
+        isOpen &&
+        popup !== null &&
+        measurement?.popup === popup &&
+        measurement.ready
     const [pickerPosition, setPickerPosition] = useState<PickerPosition>({
         top: 0,
         left: 0,
@@ -98,7 +108,10 @@ export default function usePickerOverlay({
         setMeasurement((previous) =>
             previous?.popup === mountedPopup && previous.ready
                 ? previous
-                : { popup: mountedPopup, ready: previous?.popup === mountedPopup },
+                : {
+                      popup: mountedPopup,
+                      ready: previous?.popup === mountedPopup,
+                  },
         )
     }, [])
 
