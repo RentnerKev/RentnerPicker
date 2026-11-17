@@ -201,33 +201,33 @@ export function AccessiblePicker() {
 
 ### `CustomColorPicker` props
 
-| Prop               | Type                             | Default         | Description                                                                  |
-| ------------------ | -------------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| `id`               | `string`                         | generated       | Unique ID for the visible trigger.                                           |
-| `name`             | `string`                         | -               | Native form field name.                                                      |
-| `value`            | `string`                         | -               | Controlled HEX/RGB color, or HEX8/RGBA in alpha mode.                                                 |
-| `onValueChange`    | `(value: string) => void`        | -               | Receives normalized colors or an optional empty value.                       |
-| `onValidityChange` | `(isValid: boolean) => void`     | -               | Reports initial validity and subsequent changes.                             |
-| `onBlur`           | `FocusEventHandler<HTMLElement>` | -               | Called when focus leaves the complete picker field.                          |
-| `required`         | `boolean`                        | `false`         | Enables required-field validation.                                           |
-| `disabled`         | `boolean`                        | `false`         | Disables the input, picker, presets, and validation.                         |
-| `readOnly`         | `boolean`                        | `false`         | Prevents changes while retaining the form value.                             |
-| `label`            | `ReactNode`                      | -               | Visible field label.                                                         |
-| `description`      | `ReactNode`                      | -               | Supporting text linked through ARIA.                                         |
-| `error`            | `string \| null`                 | `undefined`     | Controlled external validation message.                                      |
-| `triggerRef`       | `Ref<HTMLButtonElement>`         | -               | Ref for the visible, focusable trigger.                                      |
-| `aria-*`           | `string`                         | -               | Additional accessible names and description references.                      |
-| `placeholder`      | `string`                         | `#13ecd6`       | Text-field placeholder.                                                      |
-| `enableAlpha`      | `boolean` | `false` | Enables opacity editing and alpha output. |
-| `format`           | `'hex' \| 'rgb' \| 'hex8' \| 'rgba'`                 | `'hex'`         | Output format for new values.                                                |
-| `presets`          | `string[]`                       | built-in colors | Colors offered for quick selection.                                          |
-| `showInput`        | `boolean`                        | `true`          | Shows the text input beside the preview.                                     |
-| `showPresets`      | `boolean`                        | `true`          | Shows preset colors below the input.                                         |
-| `icon`             | `ReactNode`                      | `Palette`       | Icon rendered at the start of the trigger.                                   |
-| `className`        | `string`                         | `w-full`        | Additional Tailwind classes for the outer container.                         |
-| `customDesign`     | `CustomColorPickerDesign`        | -               | Tailwind class overrides for individual visual parts, including `hoverText`. |
-| `locale`           | `'de' \| 'en'`                   | `'de'`          | Selects the default message catalog.                                         |
-| `messages`         | `Partial<PickerMessages>`        | -               | Overrides individual messages and ARIA text.                                 |
+| Prop               | Type                                 | Default         | Description                                                                  |
+| ------------------ | ------------------------------------ | --------------- | ---------------------------------------------------------------------------- |
+| `id`               | `string`                             | generated       | Unique ID for the visible trigger.                                           |
+| `name`             | `string`                             | -               | Native form field name.                                                      |
+| `value`            | `string`                             | -               | Controlled HEX/RGB color, or HEX8/RGBA in alpha mode.                        |
+| `onValueChange`    | `(value: string) => void`            | -               | Receives normalized colors or an optional empty value.                       |
+| `onValidityChange` | `(isValid: boolean) => void`         | -               | Reports initial validity and subsequent changes.                             |
+| `onBlur`           | `FocusEventHandler<HTMLElement>`     | -               | Called when focus leaves the complete picker field.                          |
+| `required`         | `boolean`                            | `false`         | Enables required-field validation.                                           |
+| `disabled`         | `boolean`                            | `false`         | Disables the input, picker, presets, and validation.                         |
+| `readOnly`         | `boolean`                            | `false`         | Prevents changes while retaining the form value.                             |
+| `label`            | `ReactNode`                          | -               | Visible field label.                                                         |
+| `description`      | `ReactNode`                          | -               | Supporting text linked through ARIA.                                         |
+| `error`            | `string \| null`                     | `undefined`     | Controlled external validation message.                                      |
+| `triggerRef`       | `Ref<HTMLButtonElement>`             | -               | Ref for the visible, focusable trigger.                                      |
+| `aria-*`           | `string`                             | -               | Additional accessible names and description references.                      |
+| `placeholder`      | `string`                             | `#13ecd6`       | Text-field placeholder.                                                      |
+| `enableAlpha`      | `boolean`                            | `false`         | Enables opacity editing and alpha output.                                    |
+| `format`           | `'hex' \| 'rgb' \| 'hex8' \| 'rgba'` | `'hex'`         | Output format for new values.                                                |
+| `presets`          | `string[]`                           | built-in colors | Colors offered for quick selection.                                          |
+| `showInput`        | `boolean`                            | `true`          | Shows the text input beside the preview.                                     |
+| `showPresets`      | `boolean`                            | `true`          | Shows preset colors below the input.                                         |
+| `icon`             | `ReactNode`                          | `Palette`       | Icon rendered at the start of the trigger.                                   |
+| `className`        | `string`                             | `w-full`        | Additional Tailwind classes for the outer container.                         |
+| `customDesign`     | `CustomColorPickerDesign`            | -               | Tailwind class overrides for individual visual parts, including `hoverText`. |
+| `locale`           | `'de' \| 'en'`                       | `'de'`          | Selects the default message catalog.                                         |
+| `messages`         | `Partial<PickerMessages>`            | -               | Overrides individual messages and ARIA text.                                 |
 
 ## Keyboard interaction
 

@@ -284,14 +284,17 @@ export default function useCustomColorPickerLogic({
         onSuccess: () => closePicker(true),
     })
     const cancelEyeDropper = eyeDropper.handler.cancel
-    const closePicker = useCallback((restoreFocus = false) => {
-        cancelEyeDropper()
-        setIsOpen(false)
+    const closePicker = useCallback(
+        (restoreFocus = false) => {
+            cancelEyeDropper()
+            setIsOpen(false)
 
-        if (restoreFocus) {
-            queueMicrotask(() => triggerRef.current?.focus())
-        }
-    }, [cancelEyeDropper])
+            if (restoreFocus) {
+                queueMicrotask(() => triggerRef.current?.focus())
+            }
+        },
+        [cancelEyeDropper],
+    )
 
     const invalidatePointer = useCallback(() => {
         lastPointerRef.current = null
@@ -921,7 +924,6 @@ export default function useCustomColorPickerLogic({
         setIsTouched(true)
         triggerRef.current?.focus()
     }
-
 
     function handleClosePicker() {
         closePicker(true)

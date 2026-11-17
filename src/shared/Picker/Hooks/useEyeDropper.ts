@@ -29,18 +29,36 @@ export function useEyeDropper(options: UseEyeDropperOptions): EyeDropperResult {
         if (!options.enabled) cancel()
     }, [options, cancel])
     const select = useCallback(async () => {
-        if (!mountedRef.current || !latestRef.current.enabled || requestRef.current) return
+        if (
+            !mountedRef.current ||
+            !latestRef.current.enabled ||
+            requestRef.current
+        )
+            return
         const EyeDropper = (window as EyeDropperWindow).EyeDropper
         if (!EyeDropper) return
         const controller = new AbortController()
         requestRef.current = controller
         setIsPending(true)
         try {
-            const result = await new EyeDropper().open({ signal: controller.signal })
-            if (!mountedRef.current || controller.signal.aborted || requestRef.current !== controller || !latestRef.current.enabled) return
+            const result = await new EyeDropper().open({
+                signal: controller.signal,
+            })
+            if (
+                !mountedRef.current ||
+                controller.signal.aborted ||
+                requestRef.current !== controller ||
+                !latestRef.current.enabled
+            )
+                return
             latestRef.current.onSelect(result.sRGBHex)
             // A consumer may synchronously unmount or close/reopen while accepting the color.
-            if (mountedRef.current && requestRef.current === controller && !controller.signal.aborted && latestRef.current.enabled)
+            if (
+                mountedRef.current &&
+                requestRef.current === controller &&
+                !controller.signal.aborted &&
+                latestRef.current.enabled
+            )
                 latestRef.current.onSuccess()
         } catch {
             // Native cancellation or failure leaves the current color untouched.

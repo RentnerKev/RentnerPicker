@@ -79,8 +79,12 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
                                 disabled={disabled || readOnly}
-                                aria-disabled={state.isEyeDropperPending || undefined}
-                                aria-busy={state.isEyeDropperPending || undefined}
+                                aria-disabled={
+                                    state.isEyeDropperPending || undefined
+                                }
+                                aria-busy={
+                                    state.isEyeDropperPending || undefined
+                                }
                                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent`}
                                 aria-label={messages.eyeDropper}
                             >

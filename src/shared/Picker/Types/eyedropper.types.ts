@@ -1,6 +1,8 @@
 export interface EyeDropperConstructor {
     new (): {
-        open: (options?: { signal?: AbortSignal }) => Promise<{ sRGBHex: string }>
+        open: (options?: {
+            signal?: AbortSignal
+        }) => Promise<{ sRGBHex: string }>
     }
 }
 
