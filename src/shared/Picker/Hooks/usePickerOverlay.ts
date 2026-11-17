@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { clamp } from '../../../lib/Color/color.ts'
 import {
     getAncestorShadowRoots,
@@ -19,6 +19,17 @@ export default function usePickerOverlay({
 }: UsePickerOverlayOptions): PickerOverlayResult {
     const rootRef = useRef<HTMLDivElement>(null)
     const popupRef = useRef<HTMLDivElement>(null)
+    const [popup, setPopup] = useState<HTMLDivElement | null>(null)
+    const [measurement, setMeasurement] = useState<{
+        popup: HTMLDivElement
+        ready: boolean
+    } | null>(null)
+    const setPopupRef = useCallback((node: HTMLDivElement | null) => {
+        popupRef.current = node
+        setPopup(node)
+        if (!node) setMeasurement(null)
+    }, [])
+    const isPositioned = isOpen && popup !== null && measurement?.popup === popup && measurement.ready
     const [pickerPosition, setPickerPosition] = useState<PickerPosition>({
         top: 0,
         left: 0,
@@ -28,8 +39,9 @@ export default function usePickerOverlay({
 
     const updatePickerPosition = useCallback(() => {
         const root = rootRef.current
+        const mountedPopup = popupRef.current
 
-        if (!root) {
+        if (!root || !mountedPopup) {
             return
         }
 
@@ -83,14 +95,29 @@ export default function usePickerOverlay({
                 ? previous
                 : { top, left, width, maxHeight },
         )
+        setMeasurement((previous) =>
+            previous?.popup === mountedPopup && previous.ready
+                ? previous
+                : { popup: mountedPopup, ready: previous?.popup === mountedPopup },
+        )
     }, [])
+
+    // A portal mounts only when opened. Apply its fixed constraints while hidden,
+    // then confirm the mounted element's layout before allowing a visible frame.
+    useLayoutEffect(() => {
+        if (isOpen && popup) updatePickerPosition()
+    }, [isOpen, popup, updatePickerPosition])
+    useLayoutEffect(() => {
+        if (measurement && !measurement.ready) updatePickerPosition()
+    }, [measurement, updatePickerPosition])
+    useLayoutEffect(() => {
+        if (isPositioned) initialFocusRef.current?.focus()
+    }, [initialFocusRef, isPositioned])
 
     useEffect(() => {
         if (!isOpen) {
             return
         }
-
-        initialFocusRef.current?.focus()
 
         function handlePointerDown(event: globalThis.PointerEvent) {
             const target = event.composedPath()[0] ?? event.target
@@ -177,6 +204,7 @@ export default function usePickerOverlay({
     return {
         refs: {
             popupRef,
+            setPopupRef,
             rootRef,
         },
         handler: {
@@ -184,6 +212,7 @@ export default function usePickerOverlay({
         },
         state: {
             pickerPosition,
+            isPositioned,
         },
         setter: {
             setPickerPosition,

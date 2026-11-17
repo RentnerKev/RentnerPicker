@@ -990,6 +990,7 @@ export default function useCustomColorPickerLogic({
         refs: {
             colorAreaRef,
             popupRef: overlay.refs.popupRef,
+            setPopupRef: overlay.refs.setPopupRef,
             rootRef: overlay.refs.rootRef,
             setTriggerRef,
             triggerRef,
@@ -1048,6 +1049,7 @@ export default function useCustomColorPickerLogic({
             isOpen,
             isValid,
             pickerPosition: overlay.state.pickerPosition,
+            isPositioned: overlay.state.isPositioned,
             previewColor,
             safeValue,
             selectedHex,

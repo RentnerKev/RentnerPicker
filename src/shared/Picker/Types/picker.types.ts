@@ -129,9 +129,13 @@ export interface UsePickerOverlayOptions {
 export interface PickerOverlayResult {
     refs: {
         popupRef: RefObject<HTMLDivElement | null>
+        setPopupRef: RefCallback<HTMLDivElement>
         rootRef: RefObject<HTMLDivElement | null>
     }
-    state: { pickerPosition: PickerPosition }
+    state: {
+        pickerPosition: PickerPosition
+        isPositioned: boolean
+    }
     handler: { updatePickerPosition: () => void }
     setter: { setPickerPosition: Dispatch<SetStateAction<PickerPosition>> }
 }
@@ -175,6 +179,7 @@ export interface CustomColorPickerLogicResult {
         isOpen: boolean
         isValid: boolean
         pickerPosition: PickerPosition
+        isPositioned: boolean
         previewColor: string
         safeValue: string
         selectedHex: string

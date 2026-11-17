@@ -96,7 +96,9 @@ test('ignores popup and unrelated scrolling, updates ancestor geometry and retai
         }),
     )
     hook.result.current.refs.rootRef.current = root
-    hook.result.current.refs.popupRef.current = popup
+    act(() => hook.result.current.refs.setPopupRef(popup))
+    expect(hook.result.current.state.isPositioned).toBe(true)
+    rect.mockClear()
     act(() => window.dispatchEvent(new Event('resize')))
     const position = hook.result.current.state.pickerPosition
     act(() => popup.dispatchEvent(new Event('scroll')))
@@ -137,6 +139,9 @@ test('refreshes geometry for composed ancestors and noncomposed scrolling inside
         { initialProps: { open: false } },
     )
     hook.result.current.refs.rootRef.current = root
+    const popup = document.createElement('div')
+    document.body.append(popup)
+    act(() => hook.result.current.refs.setPopupRef(popup))
     hook.rerender({ open: true })
     const position = hook.result.current.state.pickerPosition
     top = 200
@@ -159,4 +164,5 @@ test('refreshes geometry for composed ancestors and noncomposed scrolling inside
     )
     expect(rect).toHaveBeenCalledTimes(reads)
     ancestor.remove()
+    popup.remove()
 })
