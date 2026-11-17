@@ -171,6 +171,7 @@ export interface CustomColorPickerLogicResult {
         hueColor: string
         hsvColor: HsvColor
         isEyeDropperSupported: boolean
+        isEyeDropperPending: boolean
         isOpen: boolean
         isValid: boolean
         pickerPosition: PickerPosition

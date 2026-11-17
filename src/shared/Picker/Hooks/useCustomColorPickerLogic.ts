@@ -1,4 +1,4 @@
-import type { EyeDropperWindow } from '../Types/eyedropper.types.ts'
+import { useEyeDropper } from './useEyeDropper.ts'
 import {
     useCallback,
     useEffect,
@@ -278,13 +278,20 @@ export default function useCustomColorPickerLogic({
 
     const setTriggerRef = useComposedRefs(triggerRef, forwardedTriggerRef)
 
+    const eyeDropper = useEyeDropper({
+        enabled: isOpen && !disabled && !readOnly,
+        onSelect: (nextHex) => commitHex(nextHex),
+        onSuccess: () => closePicker(true),
+    })
+    const cancelEyeDropper = eyeDropper.handler.cancel
     const closePicker = useCallback((restoreFocus = false) => {
+        cancelEyeDropper()
         setIsOpen(false)
 
         if (restoreFocus) {
             queueMicrotask(() => triggerRef.current?.focus())
         }
-    }, [])
+    }, [cancelEyeDropper])
 
     const invalidatePointer = useCallback(() => {
         lastPointerRef.current = null
@@ -915,23 +922,6 @@ export default function useCustomColorPickerLogic({
         triggerRef.current?.focus()
     }
 
-    async function handleEyeDropperClick() {
-        if (disabled || readOnly) return
-
-        const EyeDropper = (window as EyeDropperWindow).EyeDropper
-
-        if (!EyeDropper) {
-            return
-        }
-
-        try {
-            const result = await new EyeDropper().open()
-            commitHex(result.sRGBHex)
-            closePicker(true)
-        } catch {
-            return
-        }
-    }
 
     function handleClosePicker() {
         closePicker(true)
@@ -1011,7 +1001,7 @@ export default function useCustomColorPickerLogic({
             handleColorAreaKeyDown,
             handleColorAreaPointer,
             handleColorAreaPointerMove,
-            handleEyeDropperClick,
+            handleEyeDropperClick: eyeDropper.handler.select,
             handleAlphaChange,
             handleHueChange,
             handleInvalid,
@@ -1052,6 +1042,7 @@ export default function useCustomColorPickerLogic({
             hueColor,
             hsvColor,
             isEyeDropperSupported,
+            isEyeDropperPending: eyeDropper.state.isPending,
             isOpen,
             isValid,
             pickerPosition: overlay.state.pickerPosition,
