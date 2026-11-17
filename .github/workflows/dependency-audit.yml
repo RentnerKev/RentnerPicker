@@ -28,4 +28,5 @@ jobs:
               with:
                   bun-version: 1.4.4
             - name: Audit resolved locked dependencies
-              run: bun audit --audit-level=high
+              # Temporary exception for the unpatched picomatch advisory only.
+              run: bun audit --audit-level=high --ignore=GHSA-fc5q-39xc-vjpf

@@ -92,12 +92,27 @@ import { hexToRgb, isValidColor, normalizeColor } from '@rentnerkev/picker'
 normalizeColor('AbC') // '#aabbcc'
 normalizeColor('rgb(19, 236, 214)') // '#13ecd6'
 normalizeColor('invalid') // null
+normalizeColor('#1234', true) // '#11223344'
+normalizeColor('rgba(19, 236, 214, 0.5)', true) // '#13ecd680'
 
 isValidColor('#13ecd6') // true
 hexToRgb('#13ecd6') // { red: 19, green: 236, blue: 214 }
 ```
 
-The parser accepts three- and six-digit HEX values with an optional `#`, plus `rgb(r, g, b)` values with channels from 0 to 255. Alpha and percentage formats are rejected instead of being partially interpreted. `normalizeColor` returns a lowercase six-digit HEX value or `null`.
+By default, `normalizeColor` and `isValidColor` accept three- and six-digit HEX
+with an optional `#`, plus `rgb(r, g, b)` channels from 0 to 255. Pass
+`true` as their second argument to also accept four- and
+eight-digit HEX and `rgba(r, g, b, a)`, where alpha is between 0 and 1.
+`normalizeColor(value, true)` returns eight-digit HEX; without alpha mode it
+returns six-digit HEX. Invalid values return `null`; percentage formats remain
+unsupported. `parseColor` supports both opaque and alpha colors directly.
+
+For the component, `enableAlpha` adds an opacity slider. It promotes `format="hex"`
+to `hex8`, and `format="rgb"` to `rgba`. Explicit `hex8` or `rgba` formats also
+enable opacity editing. EyeDropper selections are opaque and use the latest
+format and callback. A pending selection is cancelled if the picker closes,
+is disabled/read-only, or unmounts; late native results never overwrite a newly
+opened picker.
 
 ## Localization
 
@@ -186,32 +201,33 @@ export function AccessiblePicker() {
 
 ### `CustomColorPicker` props
 
-| Prop               | Type                             | Default         | Description                                                                  |
-| ------------------ | -------------------------------- | --------------- | ---------------------------------------------------------------------------- |
-| `id`               | `string`                         | generated       | Unique ID for the visible trigger.                                           |
-| `name`             | `string`                         | -               | Native form field name.                                                      |
-| `value`            | `string`                         | -               | Controlled HEX or RGB color.                                                 |
-| `onValueChange`    | `(value: string) => void`        | -               | Receives normalized colors or an optional empty value.                       |
-| `onValidityChange` | `(isValid: boolean) => void`     | -               | Reports initial validity and subsequent changes.                             |
-| `onBlur`           | `FocusEventHandler<HTMLElement>` | -               | Called when focus leaves the complete picker field.                          |
-| `required`         | `boolean`                        | `false`         | Enables required-field validation.                                           |
-| `disabled`         | `boolean`                        | `false`         | Disables the input, picker, presets, and validation.                         |
-| `readOnly`         | `boolean`                        | `false`         | Prevents changes while retaining the form value.                             |
-| `label`            | `ReactNode`                      | -               | Visible field label.                                                         |
-| `description`      | `ReactNode`                      | -               | Supporting text linked through ARIA.                                         |
-| `error`            | `string \| null`                 | `undefined`     | Controlled external validation message.                                      |
-| `triggerRef`       | `Ref<HTMLButtonElement>`         | -               | Ref for the visible, focusable trigger.                                      |
-| `aria-*`           | `string`                         | -               | Additional accessible names and description references.                      |
-| `placeholder`      | `string`                         | `#13ecd6`       | Text-field placeholder.                                                      |
-| `format`           | `'hex' \| 'rgb'`                 | `'hex'`         | Output format for new values.                                                |
-| `presets`          | `string[]`                       | built-in colors | Colors offered for quick selection.                                          |
-| `showInput`        | `boolean`                        | `true`          | Shows the text input beside the preview.                                     |
-| `showPresets`      | `boolean`                        | `true`          | Shows preset colors below the input.                                         |
-| `icon`             | `ReactNode`                      | `Palette`       | Icon rendered at the start of the trigger.                                   |
-| `className`        | `string`                         | `w-full`        | Additional Tailwind classes for the outer container.                         |
-| `customDesign`     | `CustomColorPickerDesign`        | -               | Tailwind class overrides for individual visual parts, including `hoverText`. |
-| `locale`           | `'de' \| 'en'`                   | `'de'`          | Selects the default message catalog.                                         |
-| `messages`         | `Partial<PickerMessages>`        | -               | Overrides individual messages and ARIA text.                                 |
+| Prop               | Type                                 | Default         | Description                                                                  |
+| ------------------ | ------------------------------------ | --------------- | ---------------------------------------------------------------------------- |
+| `id`               | `string`                             | generated       | Unique ID for the visible trigger.                                           |
+| `name`             | `string`                             | -               | Native form field name.                                                      |
+| `value`            | `string`                             | -               | Controlled HEX/RGB color, or HEX8/RGBA in alpha mode.                        |
+| `onValueChange`    | `(value: string) => void`            | -               | Receives normalized colors or an optional empty value.                       |
+| `onValidityChange` | `(isValid: boolean) => void`         | -               | Reports initial validity and subsequent changes.                             |
+| `onBlur`           | `FocusEventHandler<HTMLElement>`     | -               | Called when focus leaves the complete picker field.                          |
+| `required`         | `boolean`                            | `false`         | Enables required-field validation.                                           |
+| `disabled`         | `boolean`                            | `false`         | Disables the input, picker, presets, and validation.                         |
+| `readOnly`         | `boolean`                            | `false`         | Prevents changes while retaining the form value.                             |
+| `label`            | `ReactNode`                          | -               | Visible field label.                                                         |
+| `description`      | `ReactNode`                          | -               | Supporting text linked through ARIA.                                         |
+| `error`            | `string \| null`                     | `undefined`     | Controlled external validation message.                                      |
+| `triggerRef`       | `Ref<HTMLButtonElement>`             | -               | Ref for the visible, focusable trigger.                                      |
+| `aria-*`           | `string`                             | -               | Additional accessible names and description references.                      |
+| `placeholder`      | `string`                             | `#13ecd6`       | Text-field placeholder.                                                      |
+| `enableAlpha`      | `boolean`                            | `false`         | Enables opacity editing and alpha output.                                    |
+| `format`           | `'hex' \| 'rgb' \| 'hex8' \| 'rgba'` | `'hex'`         | Output format for new values.                                                |
+| `presets`          | `string[]`                           | built-in colors | Colors offered for quick selection.                                          |
+| `showInput`        | `boolean`                            | `true`          | Shows the text input beside the preview.                                     |
+| `showPresets`      | `boolean`                            | `true`          | Shows preset colors below the input.                                         |
+| `icon`             | `ReactNode`                          | `Palette`       | Icon rendered at the start of the trigger.                                   |
+| `className`        | `string`                             | `w-full`        | Additional Tailwind classes for the outer container.                         |
+| `customDesign`     | `CustomColorPickerDesign`            | -               | Tailwind class overrides for individual visual parts, including `hoverText`. |
+| `locale`           | `'de' \| 'en'`                       | `'de'`          | Selects the default message catalog.                                         |
+| `messages`         | `Partial<PickerMessages>`            | -               | Overrides individual messages and ARIA text.                                 |
 
 ## Keyboard interaction
 

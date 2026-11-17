@@ -7,7 +7,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
     const { state, handler, refs } = useCustomColorPickerLogic(props)
     const {
         colorAreaRef,
-        popupRef,
+        setPopupRef,
         rootRef,
         setTriggerRef,
         setValidationInputRef,
@@ -46,7 +46,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
     const pickerPopup =
         state.isOpen && !disabled && !readOnly ? (
             <div
-                ref={popupRef}
+                ref={setPopupRef}
                 // oxlint-disable-next-line jsx-a11y/prefer-tag-over-role -- Preserve the existing nonmodal portal and hook-owned focus lifecycle; native dialog changes platform behavior.
                 role="dialog"
                 aria-modal="false"
@@ -55,6 +55,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                 style={{
                     zIndex:
                         state.portalZIndex ?? 'var(--rentner-overlay-z, 9999)',
+                    visibility: state.isPositioned ? undefined : 'hidden',
                     left: `${state.pickerPosition.left}px`,
                     top: `${state.pickerPosition.top}px`,
                     width: `${state.pickerPosition.width}px`,
@@ -79,6 +80,12 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                                 type="button"
                                 onClick={handler.handleEyeDropperClick}
                                 disabled={disabled || readOnly}
+                                aria-disabled={
+                                    state.isEyeDropperPending || undefined
+                                }
+                                aria-busy={
+                                    state.isEyeDropperPending || undefined
+                                }
                                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent`}
                                 aria-label={messages.eyeDropper}
                             >
