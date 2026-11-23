@@ -19,28 +19,78 @@ import type {
 } from 'react'
 import {
     clamp,
+    defaultPickerColor,
     formatColor,
     getHsvFromValue,
     hsvToRgb,
     normalizeColor,
     parseColor,
+    rgbaToHex,
     rgbToHex,
-    toPickerHex,
 } from '../../../lib/Color/color.ts'
 import type {
     ColorFormat,
     HsvColor,
+    RgbaColor,
 } from '../../../lib/Color/Types/color.types.ts'
 import { getColorError } from '../../../lib/Color/colorValidation.ts'
 import { mergeAriaIds, resolveFieldError } from '../../../lib/Field/field.ts'
 import { usePickerDefaults, usePickerMessages } from './usePickerContext.ts'
 import type { PickerMessages } from '../../../lib/Messages/Types/i18n.types.ts'
 import type {
+    CustomColorPickerDesign,
     CustomColorPickerProps,
     CustomColorPickerLogicResult,
+    PickerClassNames,
 } from '../Types/picker.types.ts'
 import usePickerOverlay from './usePickerOverlay.ts'
 import useComposedRefs from './useComposedRefs.ts'
+
+const NOOP = () => undefined
+
+const EMPTY_CLASS_NAMES: PickerClassNames = Object.freeze({})
+
+const EMPTY_PRESET_ENTRIES: Array<{ preset: string; isActive: boolean }> = []
+
+const DEFAULT_PICKER_DESIGN: Required<CustomColorPickerDesign> = Object.freeze({
+    bg: 'bg-rentner-control',
+    border: 'border-rentner-border',
+    text: 'text-rentner-foreground',
+    placeholder: 'placeholder-rentner-muted',
+    focusRing: 'focus-within:ring-rentner-accent',
+    focusBorder: 'focus-within:border-rentner-accent',
+    errorBorder: 'border-rentner-danger',
+    errorRing: 'focus-within:ring-rentner-danger',
+    errorText: 'text-rentner-danger',
+    labelText: 'text-rentner-foreground',
+    descriptionText: 'text-rentner-muted',
+    iconColor: 'text-rentner-muted',
+    iconFocus: 'group-focus-within:text-rentner-accent',
+    hoverText: 'hover:text-rentner-foreground',
+    previewBorder: 'border-rentner-border',
+    presetBorder: 'border-rentner-border',
+    presetActiveBorder: 'ring-rentner-accent border-rentner-accent',
+})
+
+function formatRgbaValue(rgba: RgbaColor, format: ColorFormat): string {
+    if (format === 'rgba') {
+        return `rgba(${rgba.red}, ${rgba.green}, ${rgba.blue}, ${rgba.alpha})`
+    }
+    if (format === 'hex8') return rgbaToHex(rgba)
+    if (format === 'rgb') return `rgb(${rgba.red}, ${rgba.green}, ${rgba.blue})`
+    return rgbToHex(rgba)
+}
+
+function isSameRgba(left: RgbaColor | null, right: RgbaColor | null): boolean {
+    return (
+        left !== null &&
+        right !== null &&
+        left.red === right.red &&
+        left.green === right.green &&
+        left.blue === right.blue &&
+        left.alpha === right.alpha
+    )
+}
 
 function getFormSubmitter(
     form: HTMLFormElement,
@@ -54,7 +104,8 @@ function getFormSubmitter(
     if (submitter?.tagName === 'INPUT') {
         const input = submitter as HTMLInputElement
 
-        return input.form === form && ['submit', 'image'].includes(input.type)
+        return input.form === form &&
+            (input.type === 'submit' || input.type === 'image')
             ? input
             : null
     }
@@ -63,7 +114,7 @@ function getFormSubmitter(
 }
 
 function subscribeToEyeDropperSupport() {
-    return () => undefined
+    return NOOP
 }
 
 function getEyeDropperSupportSnapshot() {
@@ -79,12 +130,11 @@ function isSameColorValue(left: string, right: string) {
         return true
     }
 
-    const normalizedLeft = parseColor(left)
+    const parsedLeft = parseColor(left)
+    if (!parsedLeft) return false
 
-    return (
-        normalizedLeft !== null &&
-        formatColor(left, 'rgba') === formatColor(right, 'rgba')
-    )
+    const parsedRight = parseColor(right)
+    return isSameRgba(parsedLeft, parsedRight)
 }
 
 function getCommittedValue(value: string, format: ColorFormat) {
@@ -143,7 +193,7 @@ export default function useCustomColorPickerLogic({
     name: _name,
     placeholder: _placeholder,
     showInput: _showInput,
-    showPresets: _showPresets,
+    showPresets = true,
     icon: _icon,
     className: _className,
     ...ariaProps
@@ -158,7 +208,13 @@ export default function useCustomColorPickerLogic({
             : 'hex8'
         : providedFormat
     const defaults = usePickerDefaults()
-    const classNames = { ...defaults.classNames, ...providedClassNames }
+    const defaultClassNames = defaults.classNames
+    const classNames = useMemo(() => {
+        if (!defaultClassNames && !providedClassNames) return EMPTY_CLASS_NAMES
+        if (!providedClassNames) return defaultClassNames!
+        if (!defaultClassNames) return providedClassNames
+        return { ...defaultClassNames, ...providedClassNames }
+    }, [defaultClassNames, providedClassNames])
     const size = controlSize ?? defaults.controlSize
     const sizeClassName =
         size === 'sm'
@@ -180,7 +236,36 @@ export default function useCustomColorPickerLogic({
     const descriptionId = hasDescription ? `${fieldId}-description` : undefined
     const errorId = `${fieldId}-error`
     const safeValue = value !== undefined && value !== null ? String(value) : ''
-    const [draftValue, setDraftValue] = useState(safeValue)
+    const [draftState, setDraftState] = useState<{
+        baseValue: string
+        value: string
+    } | null>(null)
+    const draftValue =
+        draftState && draftState.baseValue === safeValue
+            ? draftState.value
+            : safeValue
+    const [hsvOverride, setHsvOverride] = useState<{
+        forValue: string
+        hsv: HsvColor
+    } | null>(null)
+    const parsedSafeColor = useMemo(() => parseColor(safeValue), [safeValue])
+    const parsedDraftColor = useMemo(
+        () =>
+            draftValue === safeValue ? parsedSafeColor : parseColor(draftValue),
+        [draftValue, safeValue, parsedSafeColor],
+    )
+    const fallbackHsv = useMemo(() => getHsvFromValue(safeValue), [safeValue])
+    const hsvColor = useMemo(() => {
+        if (!hsvOverride) return fallbackHsv
+        if (
+            hsvOverride.forValue === safeValue ||
+            (parsedSafeColor !== null &&
+                isSameRgba(parseColor(hsvOverride.forValue), parsedSafeColor))
+        ) {
+            return hsvOverride.hsv
+        }
+        return fallbackHsv
+    }, [hsvOverride, safeValue, parsedSafeColor, fallbackHsv])
     const currentStateRef = useRef<{
         draftValue: string
         safeValue: string
@@ -191,21 +276,10 @@ export default function useCustomColorPickerLogic({
         externalError: string | null | undefined
         disabled: boolean
         readOnly: boolean
+        error: string | null
         commitColor: (nextValue: string) => void
-    }>({
-        draftValue,
-        safeValue,
-        required,
-        format,
-        enableAlpha,
-        messages,
-        externalError,
-        disabled,
-        readOnly,
-        commitColor: () => undefined,
-    })
+    } | null>(null)
 
-    const [previousSafeValue, setPreviousSafeValue] = useState(safeValue)
     const [isTouched, setIsTouched] = useState(false)
     const [isOpen, setIsOpen] = useState(false)
     const isEyeDropperSupported = useSyncExternalStore(
@@ -213,12 +287,10 @@ export default function useCustomColorPickerLogic({
         getEyeDropperSupportSnapshot,
         getEyeDropperSupportServerSnapshot,
     )
-    const [hsvColor, setHsvColor] = useState<HsvColor>(() =>
-        getHsvFromValue(safeValue),
-    )
     const colorAreaRef = useRef<HTMLButtonElement>(null)
     const currentHsvRef = useRef(hsvColor)
     const requestedValueRef = useRef(safeValue)
+    const requestedRgbaRef = useRef<RgbaColor | null>(parsedSafeColor)
     const lastPointerRef = useRef<{
         target: HTMLButtonElement
         clientX: number
@@ -226,6 +298,7 @@ export default function useCustomColorPickerLogic({
     } | null>(null)
     const triggerRef = useRef<HTMLButtonElement>(null)
     const validationInputRef = useRef<HTMLInputElement>(null)
+    const lastCustomValidityRef = useRef<string | null>(null)
     const onValidityChangeRef = useRef(onValidityChange)
     const previousValidityRef = useRef<boolean | undefined>(undefined)
     const replayingSubmitRef = useRef(false)
@@ -234,18 +307,16 @@ export default function useCustomColorPickerLogic({
         baseValue: string
         nextValue: string
     } | null>(null)
-    const [pendingValueChange, setPendingValueChange] = useState<{
-        baseValue: string
-        nextValue: string
-        nextHsvColor: HsvColor
-        reconciled: boolean
-    } | null>(null)
-    const internalError = getColorError(
-        draftValue,
-        required,
-        messages,
-        enableAlpha,
-    )
+    const internalError = useMemo(() => {
+        const trimmed = draftValue.trim()
+        if (required && !trimmed) return messages.required
+        if (!trimmed) return null
+        if (!parsedDraftColor) return messages.invalidColor
+        if (!enableAlpha) {
+            return getColorError(draftValue, required, messages, false)
+        }
+        return null
+    }, [draftValue, required, messages, parsedDraftColor, enableAlpha])
     const { error, hasError } = resolveFieldError(
         internalError,
         externalError,
@@ -254,27 +325,15 @@ export default function useCustomColorPickerLogic({
     const isValid = disabled || readOnly || !error
     const hasValidityChangeHandler = onValidityChange !== undefined
 
-    const design = {
-        bg: 'bg-rentner-control',
-        border: 'border-rentner-border',
-        text: 'text-rentner-foreground',
-        placeholder: 'placeholder-rentner-muted',
-        focusRing: 'focus-within:ring-rentner-accent',
-        focusBorder: 'focus-within:border-rentner-accent',
-        errorBorder: 'border-rentner-danger',
-        errorRing: 'focus-within:ring-rentner-danger',
-        errorText: 'text-rentner-danger',
-        labelText: 'text-rentner-foreground',
-        descriptionText: 'text-rentner-muted',
-        iconColor: 'text-rentner-muted',
-        iconFocus: 'group-focus-within:text-rentner-accent',
-        hoverText: 'hover:text-rentner-foreground',
-        previewBorder: 'border-rentner-border',
-        presetBorder: 'border-rentner-border',
-        presetActiveBorder: 'ring-rentner-accent border-rentner-accent',
-        ...defaults.customDesign,
-        ...customDesign,
-    }
+    const defaultCustomDesign = defaults.customDesign
+    const design = useMemo(() => {
+        if (!defaultCustomDesign && !customDesign) return DEFAULT_PICKER_DESIGN
+        return {
+            ...DEFAULT_PICKER_DESIGN,
+            ...defaultCustomDesign,
+            ...customDesign,
+        }
+    }, [defaultCustomDesign, customDesign])
 
     const setTriggerRef = useComposedRefs(triggerRef, forwardedTriggerRef)
 
@@ -302,11 +361,10 @@ export default function useCustomColorPickerLogic({
 
     useLayoutEffect(() => {
         currentHsvRef.current = hsvColor
-        requestedValueRef.current =
-            pendingValueChange && !pendingValueChange.reconciled
-                ? pendingValueChange.nextValue
-                : safeValue
-    }, [hsvColor, pendingValueChange, safeValue])
+        requestedValueRef.current = safeValue
+        requestedRgbaRef.current = parsedSafeColor
+        onValidityChangeRef.current = onValidityChange
+    }, [hsvColor, safeValue, parsedSafeColor, onValidityChange])
 
     useLayoutEffect(invalidatePointer, [
         disabled,
@@ -331,18 +389,50 @@ export default function useCustomColorPickerLogic({
     )
     const resolvedAriaLabel =
         ariaLabel ?? (resolvedLabelledBy ? undefined : messages.selectColor)
-    const presetEntries = useMemo(() => {
-        const activeColor = normalizeColor(safeValue, enableAlpha)
+    const parsedPresets = useMemo(() => {
+        if (!showPresets || presets.length === 0) return null
         return presets.map((preset) => ({
             preset,
-            isActive:
-                activeColor !== null &&
-                (enableAlpha
-                    ? isSameColorValue(safeValue, preset)
-                    : activeColor === normalizeColor(preset)),
+            rgba: enableAlpha ? parseColor(preset) : null,
+            normalized: enableAlpha ? null : normalizeColor(preset),
         }))
-    }, [presets, safeValue, enableAlpha])
-    const selectedHex = useMemo(() => rgbToHex(hsvToRgb(hsvColor)), [hsvColor])
+    }, [showPresets, presets, enableAlpha])
+    const normalizedOpaqueSafe = useMemo(
+        () => (!enableAlpha ? normalizeColor(safeValue, false) : null),
+        [enableAlpha, safeValue],
+    )
+    const activePresetMask = useMemo(() => {
+        if (!parsedPresets) return ''
+        const hasActive = enableAlpha
+            ? parsedSafeColor !== null
+            : normalizedOpaqueSafe !== null
+        if (!hasActive) return ''
+        let mask = ''
+        for (let index = 0; index < parsedPresets.length; index++) {
+            const entry = parsedPresets[index]!
+            const active = enableAlpha
+                ? isSameRgba(parsedSafeColor, entry.rgba)
+                : normalizedOpaqueSafe === entry.normalized
+            if (active) mask = mask ? `${mask},${index}` : `${index}`
+        }
+        return mask
+    }, [parsedPresets, enableAlpha, parsedSafeColor, normalizedOpaqueSafe])
+    const presetEntries = useMemo(() => {
+        if (!parsedPresets) return EMPTY_PRESET_ENTRIES
+        if (!activePresetMask) {
+            return parsedPresets.map((entry) => ({
+                preset: entry.preset,
+                isActive: false,
+            }))
+        }
+        const activeSet = new Set(activePresetMask.split(',').map(Number))
+        return parsedPresets.map((entry, index) => ({
+            preset: entry.preset,
+            isActive: activeSet.has(index),
+        }))
+    }, [parsedPresets, activePresetMask])
+    const selectedRgb = useMemo(() => hsvToRgb(hsvColor), [hsvColor])
+    const selectedHex = useMemo(() => rgbToHex(selectedRgb), [selectedRgb])
     const hueColor = useMemo(
         () =>
             rgbToHex(
@@ -354,55 +444,75 @@ export default function useCustomColorPickerLogic({
             ),
         [hsvColor.hue],
     )
-    const alpha = enableAlpha
-        ? (parseColor(draftValue || safeValue)?.alpha ?? 1)
-        : 1
-    const selectedRgb = hsvToRgb(hsvColor)
+    const activeParsedColor = draftValue ? parsedDraftColor : parsedSafeColor
+    const alpha = enableAlpha ? (activeParsedColor?.alpha ?? 1) : 1
     const alphaColor = `rgba(${selectedRgb.red}, ${selectedRgb.green}, ${selectedRgb.blue}, ${alpha})`
-    const previewColor = error
-        ? toPickerHex(safeValue, enableAlpha)
-        : toPickerHex(draftValue || selectedHex, enableAlpha)
+    const previewColor = useMemo(() => {
+        if (error) {
+            if (enableAlpha) {
+                return parsedSafeColor
+                    ? rgbaToHex(parsedSafeColor)
+                    : defaultPickerColor
+            }
+            return normalizedOpaqueSafe ?? defaultPickerColor
+        }
+        if (!draftValue) {
+            return enableAlpha ? `${selectedHex}ff` : selectedHex
+        }
+        if (enableAlpha) {
+            return parsedDraftColor
+                ? rgbaToHex(parsedDraftColor)
+                : defaultPickerColor
+        }
+        return normalizeColor(draftValue, false) ?? defaultPickerColor
+    }, [
+        error,
+        enableAlpha,
+        parsedSafeColor,
+        normalizedOpaqueSafe,
+        draftValue,
+        selectedHex,
+        parsedDraftColor,
+    ])
 
     if ((disabled || readOnly) && isOpen) {
         setIsOpen(false)
     }
-
-    if (previousSafeValue !== safeValue) {
-        setPreviousSafeValue(safeValue)
-        if (
-            pendingValueChange &&
-            isSameColorValue(safeValue, pendingValueChange.nextValue)
-        ) {
-            setDraftValue(safeValue)
-            setHsvColor(pendingValueChange.nextHsvColor)
-            setPendingValueChange(null)
-        } else {
-            setPendingValueChange(null)
-            setDraftValue(safeValue)
-            setHsvColor(getHsvFromValue(safeValue))
-        }
-    } else if (pendingValueChange) {
-        if (isSameColorValue(safeValue, pendingValueChange.nextValue)) {
-            setHsvColor(pendingValueChange.nextHsvColor)
-            setPendingValueChange(null)
-        } else if (
-            isSameColorValue(safeValue, pendingValueChange.baseValue) &&
-            !pendingValueChange.reconciled
-        ) {
-            setDraftValue(safeValue)
-            setHsvColor(getHsvFromValue(safeValue))
-            setPendingValueChange({
-                ...pendingValueChange,
-                reconciled: true,
-            })
-        } else if (!isSameColorValue(safeValue, pendingValueChange.baseValue)) {
-            setPendingValueChange(null)
-        }
+    if (draftState && draftState.baseValue !== safeValue) {
+        setDraftState(null)
     }
 
-    useEffect(() => {
-        onValidityChangeRef.current = onValidityChange
-    }, [onValidityChange])
+    const setDraftValue = useCallback(
+        (next: string | ((prev: string) => string)) => {
+            setDraftState((previous) => {
+                const current =
+                    previous && previous.baseValue === safeValue
+                        ? previous.value
+                        : safeValue
+                const resolved =
+                    typeof next === 'function' ? next(current) : next
+                return resolved === safeValue
+                    ? null
+                    : { baseValue: safeValue, value: resolved }
+            })
+        },
+        [safeValue],
+    )
+
+    const setHsvColor = useCallback(
+        (next: HsvColor | ((prev: HsvColor) => HsvColor)) => {
+            setHsvOverride((previous) => {
+                const current =
+                    previous && isSameColorValue(previous.forValue, safeValue)
+                        ? previous.hsv
+                        : currentHsvRef.current
+                const resolved =
+                    typeof next === 'function' ? next(current) : next
+                return { forValue: safeValue, hsv: resolved }
+            })
+        },
+        [safeValue],
+    )
 
     useEffect(() => {
         if (!hasValidityChangeHandler) {
@@ -448,6 +558,15 @@ export default function useCustomColorPickerLogic({
             }
 
             const currentState = currentStateRef.current
+            if (!currentState) return
+
+            if (currentState.disabled || currentState.readOnly) {
+                if (currentInput.validity.valid) {
+                    setIsTouched(false)
+                }
+                return
+            }
+
             const submitter = getFormSubmitter(currentForm, event.submitter)
             const skipNativeValidation =
                 currentForm.noValidate || Boolean(submitter?.formNoValidate)
@@ -457,13 +576,6 @@ export default function useCustomColorPickerLogic({
                 currentState.messages,
                 currentState.enableAlpha,
             )
-
-            if (currentState.disabled || currentState.readOnly) {
-                if (currentInput.validity.valid) {
-                    setIsTouched(false)
-                }
-                return
-            }
 
             if (currentState.externalError && !skipNativeValidation) {
                 event.preventDefault()
@@ -510,7 +622,7 @@ export default function useCustomColorPickerLogic({
                 if (currentInput.validity.valid) {
                     setIsTouched(false)
                 }
-                setDraftValue(currentValue)
+                setDraftState(null)
                 return
             }
 
@@ -585,10 +697,59 @@ export default function useCustomColorPickerLogic({
         }
     }, [])
 
+    const commitRgba = useCallback(
+        (rgba: RgbaColor, nextHsvColor: HsvColor) => {
+            if (disabled || readOnly) return
+
+            const nextValue = formatRgbaValue(rgba, format)
+            const effectiveRgba: RgbaColor =
+                format === 'hex8'
+                    ? {
+                          red: rgba.red,
+                          green: rgba.green,
+                          blue: rgba.blue,
+                          alpha:
+                              clamp(Math.round(rgba.alpha * 255), 0, 255) / 255,
+                      }
+                    : format === 'hex' || format === 'rgb'
+                      ? {
+                            red: rgba.red,
+                            green: rgba.green,
+                            blue: rgba.blue,
+                            alpha: 1,
+                        }
+                      : rgba
+            const valueChanged =
+                requestedValueRef.current !== nextValue &&
+                !isSameRgba(requestedRgbaRef.current, effectiveRgba)
+            currentHsvRef.current = nextHsvColor
+            if (!valueChanged) {
+                setHsvOverride({ forValue: safeValue, hsv: nextHsvColor })
+                setDraftState(
+                    nextValue === safeValue
+                        ? null
+                        : { baseValue: safeValue, value: nextValue },
+                )
+                return
+            }
+            requestedValueRef.current = nextValue
+            requestedRgbaRef.current = effectiveRgba
+            setHsvOverride({ forValue: nextValue, hsv: nextHsvColor })
+            setDraftState(null)
+            onValueChange(nextValue)
+        },
+        [disabled, format, onValueChange, readOnly, safeValue],
+    )
+
     const commitHex = useCallback(
         (nextHex: string, nextHsvColor = getHsvFromValue(nextHex)) => {
             if (disabled || readOnly) return
 
+            const parsed = parseColor(nextHex)
+            if (parsed) {
+                commitRgba(parsed, nextHsvColor)
+                return
+            }
             const nextValue = formatColor(nextHex, format)
             const valueChanged = !isSameColorValue(
                 requestedValueRef.current,
@@ -596,25 +757,21 @@ export default function useCustomColorPickerLogic({
             )
             currentHsvRef.current = nextHsvColor
             if (!valueChanged) {
-                setHsvColor(nextHsvColor)
-                setDraftValue(nextValue)
-                setPendingValueChange((current) =>
-                    current ? { ...current, nextHsvColor } : null,
+                setHsvOverride({ forValue: safeValue, hsv: nextHsvColor })
+                setDraftState(
+                    nextValue === safeValue
+                        ? null
+                        : { baseValue: safeValue, value: nextValue },
                 )
                 return
             }
             requestedValueRef.current = nextValue
-            setPendingValueChange({
-                baseValue: safeValue,
-                nextValue,
-                nextHsvColor,
-                reconciled: false,
-            })
-            setHsvColor(nextHsvColor)
-            setDraftValue(nextValue)
+            requestedRgbaRef.current = null
+            setHsvOverride({ forValue: nextValue, hsv: nextHsvColor })
+            setDraftState(null)
             onValueChange(nextValue)
         },
-        [disabled, format, onValueChange, readOnly, safeValue],
+        [commitRgba, disabled, format, onValueChange, readOnly, safeValue],
     )
 
     function commitHsvColor(nextHsvColor: HsvColor) {
@@ -626,10 +783,15 @@ export default function useCustomColorPickerLogic({
         )
             return
         const rgb = hsvToRgb(nextHsvColor)
-        const nextColor = enableAlpha
-            ? `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${parseColor(requestedValueRef.current)?.alpha ?? 1})`
-            : rgbToHex(rgb)
-        commitHex(nextColor, nextHsvColor)
+        commitRgba(
+            {
+                red: rgb.red,
+                green: rgb.green,
+                blue: rgb.blue,
+                alpha: enableAlpha ? (requestedRgbaRef.current?.alpha ?? 1) : 1,
+            },
+            nextHsvColor,
+        )
     }
 
     const commitColor = useCallback(
@@ -642,36 +804,77 @@ export default function useCustomColorPickerLogic({
                 messages,
                 enableAlpha,
             )
-            setDraftValue(nextValue)
 
             if (nextInternalError) {
+                setDraftState(
+                    nextValue === safeValue
+                        ? null
+                        : { baseValue: safeValue, value: nextValue },
+                )
                 setIsTouched(true)
                 return
             }
 
             if (!nextValue.trim()) {
-                setDraftValue('')
+                setDraftState(
+                    safeValue === ''
+                        ? null
+                        : { baseValue: safeValue, value: '' },
+                )
+                setHsvOverride(null)
 
                 if (safeValue === '') {
-                    setHsvColor(getHsvFromValue(''))
                     return
                 }
 
-                setPendingValueChange({
-                    baseValue: safeValue,
-                    nextValue: '',
-                    nextHsvColor: getHsvFromValue(''),
-                    reconciled: false,
-                })
+                requestedValueRef.current = ''
+                requestedRgbaRef.current = null
+                setDraftState(null)
                 onValueChange('')
+                return
+            }
+
+            const parsed = parseColor(nextValue)
+            if (parsed) {
+                const formattedValue = formatRgbaValue(parsed, format)
+                const effectiveRgba: RgbaColor =
+                    format === 'hex8'
+                        ? {
+                              red: parsed.red,
+                              green: parsed.green,
+                              blue: parsed.blue,
+                              alpha:
+                                  clamp(
+                                      Math.round(parsed.alpha * 255),
+                                      0,
+                                      255,
+                                  ) / 255,
+                          }
+                        : format === 'hex' || format === 'rgb'
+                          ? {
+                                red: parsed.red,
+                                green: parsed.green,
+                                blue: parsed.blue,
+                                alpha: 1,
+                            }
+                          : parsed
+                if (
+                    safeValue === formattedValue ||
+                    isSameRgba(parsedSafeColor, effectiveRgba)
+                ) {
+                    setDraftState(null)
+                    setHsvOverride(null)
+                    return
+                }
+                commitRgba(parsed, getHsvFromValue(formattedValue))
                 return
             }
 
             const formattedValue = formatColor(nextValue, format)
 
             if (isSameColorValue(safeValue, formattedValue)) {
-                setDraftValue(safeValue)
-                setHsvColor(getHsvFromValue(safeValue))
+                setDraftState(null)
+                setHsvOverride(null)
                 return
             }
 
@@ -679,71 +882,100 @@ export default function useCustomColorPickerLogic({
         },
         [
             commitHex,
+            commitRgba,
             disabled,
             format,
             enableAlpha,
             messages,
             onValueChange,
+            parsedSafeColor,
             readOnly,
             required,
             safeValue,
         ],
     )
+
+    useLayoutEffect(() => {
+        currentStateRef.current = {
+            draftValue,
+            safeValue,
+            required,
+            format,
+            enableAlpha,
+            messages,
+            externalError,
+            disabled,
+            readOnly,
+            error,
+            commitColor,
+        }
+        const node = validationInputRef.current
+        if (!node) return
+        if (node.value !== draftValue) {
+            node.value = draftValue
+        }
+        const nextValidity = disabled ? '' : error || ''
+        if (lastCustomValidityRef.current !== nextValidity) {
+            lastCustomValidityRef.current = nextValidity
+            node.setCustomValidity(nextValidity)
+        }
+    }, [
+        commitColor,
+        disabled,
+        draftValue,
+        enableAlpha,
+        error,
+        externalError,
+        format,
+        messages,
+        readOnly,
+        required,
+        safeValue,
+    ])
 
     const setValidationInputRef = useCallback(
         (node: HTMLInputElement | null) => {
             validationInputRef.current = node
 
             if (!node) {
+                lastCustomValidityRef.current = null
                 return
             }
 
-            currentStateRef.current = {
-                draftValue,
-                safeValue,
-                required,
-                format,
-                enableAlpha,
-                messages,
-                externalError,
-                disabled,
-                readOnly,
-                commitColor,
-            }
-            node.value = draftValue
-            node.setCustomValidity(disabled ? '' : error || '')
+            const current = currentStateRef.current
+            if (!current) return
+            node.value = current.draftValue
+            const nextValidity = current.disabled ? '' : current.error || ''
+            lastCustomValidityRef.current = nextValidity
+            node.setCustomValidity(nextValidity)
         },
-        [
-            commitColor,
-            disabled,
-            draftValue,
-            error,
-            externalError,
-            format,
-            enableAlpha,
-            messages,
-            readOnly,
-            required,
-            safeValue,
-        ],
+        [],
     )
 
     function handleTextChange(event: ChangeEvent<HTMLInputElement>) {
         if (disabled || readOnly) return
 
         const nextValue = event.target.value
-        currentStateRef.current.draftValue = nextValue
+        if (currentStateRef.current) {
+            currentStateRef.current.draftValue = nextValue
+        }
         const validationInput = validationInputRef.current
         const nextError =
             externalError !== undefined
                 ? externalError
                 : getColorError(nextValue, required, messages, enableAlpha)
 
-        setDraftValue(nextValue)
+        setDraftState(
+            nextValue === safeValue
+                ? null
+                : { baseValue: safeValue, value: nextValue },
+        )
 
         if (validationInput) {
             validationInput.value = nextValue
-            validationInput.setCustomValidity(disabled ? '' : nextError || '')
+            const nextValidity = disabled ? '' : nextError || ''
+            lastCustomValidityRef.current = nextValidity
+            validationInput.setCustomValidity(nextValidity)
         }
     }
 
@@ -878,8 +1110,13 @@ export default function useCustomColorPickerLogic({
         if (disabled || readOnly || !enableAlpha) return
         const rgb = hsvToRgb(currentHsvRef.current)
         const nextAlpha = clamp(Number(event.target.value), 0, 100) / 100
-        commitHex(
-            `rgba(${rgb.red}, ${rgb.green}, ${rgb.blue}, ${nextAlpha})`,
+        commitRgba(
+            {
+                red: rgb.red,
+                green: rgb.green,
+                blue: rgb.blue,
+                alpha: nextAlpha,
+            },
             currentHsvRef.current,
         )
     }
@@ -913,11 +1150,12 @@ export default function useCustomColorPickerLogic({
         })
     }
 
-    function handlePresetClick(nextValue: string) {
-        if (disabled || readOnly) return
-        commitColor(nextValue)
+    const handlePresetClick = useCallback((nextValue: string) => {
+        const current = currentStateRef.current
+        if (!current || current.disabled || current.readOnly) return
+        current.commitColor(nextValue)
         setIsOpen(false)
-    }
+    }, [])
 
     function handleInvalid(event: InvalidEvent<HTMLInputElement>) {
         event.preventDefault()
@@ -937,7 +1175,10 @@ export default function useCustomColorPickerLogic({
             return
         }
 
-        setHsvColor(getHsvFromValue(draftValue || safeValue))
+        setHsvOverride({
+            forValue: safeValue,
+            hsv: getHsvFromValue(draftValue || safeValue),
+        })
         setIsOpen(true)
     }
 

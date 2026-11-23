@@ -17,6 +17,13 @@ import type {
     PickerOverlayResult,
 } from '../Types/picker.types.ts'
 
+const DEFAULT_PICKER_POSITION: PickerPosition = Object.freeze({
+    top: 0,
+    left: 0,
+    width: 288,
+    maxHeight: 360,
+})
+
 export default function usePickerOverlay({
     initialFocusRef,
     isOpen,
@@ -25,6 +32,7 @@ export default function usePickerOverlay({
 }: UsePickerOverlayOptions): PickerOverlayResult {
     const rootRef = useRef<HTMLDivElement>(null)
     const popupRef = useRef<HTMLDivElement>(null)
+    const positionedPopupRef = useRef<HTMLDivElement | null>(null)
     const [popup, setPopup] = useState<HTMLDivElement | null>(null)
     const [measurement, setMeasurement] = useState<{
         popup: HTMLDivElement
@@ -33,19 +41,19 @@ export default function usePickerOverlay({
     const setPopupRef = useCallback((node: HTMLDivElement | null) => {
         popupRef.current = node
         setPopup(node)
-        if (!node) setMeasurement(null)
+        if (!node) {
+            positionedPopupRef.current = null
+            setMeasurement(null)
+        }
     }, [])
     const isPositioned =
         isOpen &&
         popup !== null &&
         measurement?.popup === popup &&
         measurement.ready
-    const [pickerPosition, setPickerPosition] = useState<PickerPosition>({
-        top: 0,
-        left: 0,
-        width: 288,
-        maxHeight: 360,
-    })
+    const [pickerPosition, setPickerPosition] = useState<PickerPosition>(
+        DEFAULT_PICKER_POSITION,
+    )
 
     const updatePickerPosition = useCallback(() => {
         const root = rootRef.current
@@ -105,14 +113,16 @@ export default function usePickerOverlay({
                 ? previous
                 : { top, left, width, maxHeight },
         )
-        setMeasurement((previous) =>
-            previous?.popup === mountedPopup && previous.ready
+        setMeasurement((previous) => {
+            const ready = previous?.popup === mountedPopup
+            if (ready) positionedPopupRef.current = mountedPopup
+            return previous?.popup === mountedPopup && previous.ready
                 ? previous
                 : {
                       popup: mountedPopup,
-                      ready: previous?.popup === mountedPopup,
-                  },
-        )
+                      ready,
+                  }
+        })
     }, [])
 
     // A portal mounts only when opened. Apply its fixed constraints while hidden,
@@ -164,6 +174,9 @@ export default function usePickerOverlay({
             updatePickerPosition()
         }
 
+        const shadowRoots = getAncestorShadowRoots(rootRef.current)
+        const hasShadowRoots = shadowRoots.length > 0
+
         function handleScroll(event: Event) {
             const target = event.composedPath()[0] ?? event.target
             const root = rootRef.current
@@ -175,7 +188,11 @@ export default function usePickerOverlay({
             if (
                 target === window ||
                 target === document ||
-                isComposedAncestor(target, root)
+                (hasShadowRoots
+                    ? isComposedAncestor(target, root)
+                    : target instanceof Node &&
+                      root !== null &&
+                      target.contains(root))
             ) {
                 handleGeometryChange()
             }
@@ -188,14 +205,30 @@ export default function usePickerOverlay({
         if (rootRef.current) observer?.observe(rootRef.current)
         if (initialFocusRef.current) observer?.observe(initialFocusRef.current)
 
-        handleGeometryChange()
-        document.addEventListener('pointerdown', handlePointerDown)
+        if (
+            popupRef.current &&
+            positionedPopupRef.current === popupRef.current
+        ) {
+            onGeometryChange?.()
+        } else {
+            handleGeometryChange()
+        }
+        document.addEventListener('pointerdown', handlePointerDown, {
+            passive: true,
+        })
         document.addEventListener('keydown', handleKeyDown)
-        window.addEventListener('resize', handleGeometryChange)
-        window.addEventListener('scroll', handleScroll, true)
-        const shadowRoots = getAncestorShadowRoots(rootRef.current)
+        window.addEventListener('resize', handleGeometryChange, {
+            passive: true,
+        })
+        window.addEventListener('scroll', handleScroll, {
+            capture: true,
+            passive: true,
+        })
         for (const shadowRoot of shadowRoots)
-            shadowRoot.addEventListener('scroll', handleScroll, true)
+            shadowRoot.addEventListener('scroll', handleScroll, {
+                capture: true,
+                passive: true,
+            })
 
         return () => {
             document.removeEventListener('pointerdown', handlePointerDown)

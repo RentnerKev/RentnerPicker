@@ -6,9 +6,14 @@ import type {
 } from './Types/color.types.ts'
 export type { HsvColor } from './Types/color.types.ts'
 
-const hexColorPattern = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
 const rgbColorPattern =
     /^rgb\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$/i
+const rgbaColorPattern =
+    /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*\)$/i
+
+const HEX_BYTES: readonly string[] = Array.from({ length: 256 }, (_, value) =>
+    value.toString(16).padStart(2, '0'),
+)
 
 export const defaultPickerColor = '#13ecd6'
 
@@ -16,87 +21,189 @@ export function clamp(value: number, min: number, max: number) {
     return Math.min(Math.max(value, min), max)
 }
 
-function normalizeHex(value: string): string | null {
-    const match = value.trim().match(hexColorPattern)
-
-    if (!match) {
-        return null
-    }
-
-    const hex = match[1].toLowerCase()
-    const expandedHex =
-        hex.length === 3
-            ? hex
-                  .split('')
-                  .map((character) => `${character}${character}`)
-                  .join('')
-            : hex
-
-    return `#${expandedHex}`
+function hexNibble(code: number): number {
+    if (code >= 48 && code <= 57) return code - 48
+    if (code >= 97 && code <= 102) return code - 87
+    if (code >= 65 && code <= 70) return code - 55
+    return -1
 }
 
-function parseRgb(value: string): RgbColor | null {
-    const match = value.trim().match(rgbColorPattern)
-
-    if (!match) {
-        return null
+function parseHexOpaque(trimmed: string): RgbColor | null {
+    const start = trimmed.charCodeAt(0) === 35 ? 1 : 0
+    const length = trimmed.length - start
+    if (length === 6) {
+        const r0 = hexNibble(trimmed.charCodeAt(start))
+        const r1 = hexNibble(trimmed.charCodeAt(start + 1))
+        const g0 = hexNibble(trimmed.charCodeAt(start + 2))
+        const g1 = hexNibble(trimmed.charCodeAt(start + 3))
+        const b0 = hexNibble(trimmed.charCodeAt(start + 4))
+        const b1 = hexNibble(trimmed.charCodeAt(start + 5))
+        if ((r0 | r1 | g0 | g1 | b0 | b1) < 0) return null
+        return {
+            red: (r0 << 4) | r1,
+            green: (g0 << 4) | g1,
+            blue: (b0 << 4) | b1,
+        }
     }
+    if (length === 3) {
+        const r = hexNibble(trimmed.charCodeAt(start))
+        const g = hexNibble(trimmed.charCodeAt(start + 1))
+        const b = hexNibble(trimmed.charCodeAt(start + 2))
+        if ((r | g | b) < 0) return null
+        return {
+            red: (r << 4) | r,
+            green: (g << 4) | g,
+            blue: (b << 4) | b,
+        }
+    }
+    return null
+}
 
-    const [red, green, blue] = match.slice(1).map(Number)
+function parseHexAlpha(trimmed: string): RgbaColor | null {
+    const start = trimmed.charCodeAt(0) === 35 ? 1 : 0
+    const length = trimmed.length - start
+    if (length === 8) {
+        const r0 = hexNibble(trimmed.charCodeAt(start))
+        const r1 = hexNibble(trimmed.charCodeAt(start + 1))
+        const g0 = hexNibble(trimmed.charCodeAt(start + 2))
+        const g1 = hexNibble(trimmed.charCodeAt(start + 3))
+        const b0 = hexNibble(trimmed.charCodeAt(start + 4))
+        const b1 = hexNibble(trimmed.charCodeAt(start + 5))
+        const a0 = hexNibble(trimmed.charCodeAt(start + 6))
+        const a1 = hexNibble(trimmed.charCodeAt(start + 7))
+        if ((r0 | r1 | g0 | g1 | b0 | b1 | a0 | a1) < 0) return null
+        return {
+            red: (r0 << 4) | r1,
+            green: (g0 << 4) | g1,
+            blue: (b0 << 4) | b1,
+            alpha: ((a0 << 4) | a1) / 255,
+        }
+    }
+    if (length === 4) {
+        const r = hexNibble(trimmed.charCodeAt(start))
+        const g = hexNibble(trimmed.charCodeAt(start + 1))
+        const b = hexNibble(trimmed.charCodeAt(start + 2))
+        const a = hexNibble(trimmed.charCodeAt(start + 3))
+        if ((r | g | b | a) < 0) return null
+        return {
+            red: (r << 4) | r,
+            green: (g << 4) | g,
+            blue: (b << 4) | b,
+            alpha: ((a << 4) | a) / 255,
+        }
+    }
+    return null
+}
 
-    if ([red, green, blue].some((channel) => channel > 255)) {
+function isLowercaseHexDigits(
+    value: string,
+    start: number,
+    length: number,
+): boolean {
+    for (let index = 0; index < length; index++) {
+        const code = value.charCodeAt(start + index)
+        if (!((code >= 48 && code <= 57) || (code >= 97 && code <= 102))) {
+            return false
+        }
+    }
+    return true
+}
+
+function normalizeHexTrimmed(trimmed: string): string | null {
+    const start = trimmed.charCodeAt(0) === 35 ? 1 : 0
+    const length = trimmed.length - start
+    if (length === 6) {
+        if (start === 1 && isLowercaseHexDigits(trimmed, 1, 6)) return trimmed
+        const rgb = parseHexOpaque(trimmed)
+        return rgb ? rgbToHex(rgb) : null
+    }
+    if (length === 3) {
+        const rgb = parseHexOpaque(trimmed)
+        return rgb ? rgbToHex(rgb) : null
+    }
+    return null
+}
+
+function parseRgbTrimmed(trimmed: string): RgbColor | null {
+    const first = trimmed.charCodeAt(0)
+    if (first !== 114 && first !== 82) return null
+    const match = rgbColorPattern.exec(trimmed)
+    if (!match) return null
+
+    const red = Number(match[1])
+    const green = Number(match[2])
+    const blue = Number(match[3])
+
+    if (red > 255 || green > 255 || blue > 255) {
         return null
     }
 
     return { red, green, blue }
 }
 
-/** Parses supported RGB/RGBA and three-, four-, six- or eight-digit HEX. */
-export function parseColor(value: string): RgbaColor | null {
-    const opaque = normalizeHex(value)
-    if (opaque) {
-        const rgb = hexToRgb(opaque)
-        return rgb ? { ...rgb, alpha: 1 } : null
-    }
-    const hex = value.trim().match(/^#?([0-9a-f]{4}|[0-9a-f]{8})$/i)?.[1]
-    if (hex) {
-        const expanded =
-            hex.length === 4
-                ? [...hex].map((digit) => digit + digit).join('')
-                : hex
-        const rgb = hexToRgb(expanded.slice(0, 6))
-        return rgb
-            ? { ...rgb, alpha: parseInt(expanded.slice(6), 16) / 255 }
-            : null
-    }
-    const rgb = parseRgb(value)
-    if (rgb) return { ...rgb, alpha: 1 }
-    const rgba = value
-        .trim()
-        .match(
-            /^rgba\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*((?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?)\s*\)$/i,
-        )
-    if (!rgba) return null
-    const [red, green, blue, alpha] = rgba.slice(1).map(Number)
-    return [red, green, blue].some((channel) => channel > 255) ||
+function parseRgbaTrimmed(trimmed: string): RgbaColor | null {
+    const first = trimmed.charCodeAt(0)
+    if (first !== 114 && first !== 82) return null
+    const match = rgbaColorPattern.exec(trimmed)
+    if (!match) return null
+
+    const red = Number(match[1])
+    const green = Number(match[2])
+    const blue = Number(match[3])
+    const alpha = Number(match[4])
+
+    if (
+        red > 255 ||
+        green > 255 ||
+        blue > 255 ||
         !Number.isFinite(alpha) ||
         alpha > 1
-        ? null
-        : { red, green, blue, alpha }
+    ) {
+        return null
+    }
+
+    return { red, green, blue, alpha }
 }
 
-export function rgbaToHex({ alpha, ...rgb }: RgbaColor): string {
-    return `${rgbToHex(rgb)}${clamp(Math.round(alpha * 255), 0, 255)
-        .toString(16)
-        .padStart(2, '0')}`
+/** Parses supported RGB/RGBA and three-, four-, six- or eight-digit HEX. */
+export function parseColor(value: string): RgbaColor | null {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+
+    const opaque = parseHexOpaque(trimmed)
+    if (opaque) {
+        return {
+            red: opaque.red,
+            green: opaque.green,
+            blue: opaque.blue,
+            alpha: 1,
+        }
+    }
+
+    const alphaHex = parseHexAlpha(trimmed)
+    if (alphaHex) return alphaHex
+
+    const rgb = parseRgbTrimmed(trimmed)
+    if (rgb) {
+        return { red: rgb.red, green: rgb.green, blue: rgb.blue, alpha: 1 }
+    }
+
+    return parseRgbaTrimmed(trimmed)
+}
+
+export function rgbaToHex({ red, green, blue, alpha }: RgbaColor): string {
+    const r = HEX_BYTES[clamp(Math.round(red), 0, 255)]
+    const g = HEX_BYTES[clamp(Math.round(green), 0, 255)]
+    const b = HEX_BYTES[clamp(Math.round(blue), 0, 255)]
+    const a = HEX_BYTES[clamp(Math.round(alpha * 255), 0, 255)]
+    return `#${r}${g}${b}${a}`
 }
 
 export function rgbToHex({ red, green, blue }: RgbColor) {
-    return `#${[red, green, blue]
-        .map((channel) =>
-            clamp(Math.round(channel), 0, 255).toString(16).padStart(2, '0'),
-        )
-        .join('')}`
+    const r = HEX_BYTES[clamp(Math.round(red), 0, 255)]
+    const g = HEX_BYTES[clamp(Math.round(green), 0, 255)]
+    const b = HEX_BYTES[clamp(Math.round(blue), 0, 255)]
+    return `#${r}${g}${b}`
 }
 
 /**
@@ -104,17 +211,8 @@ export function rgbToHex({ red, green, blue }: RgbColor) {
  * optional. Unsupported or malformed values return `null`.
  */
 export function hexToRgb(value: string): RgbColor | null {
-    const normalizedHex = normalizeHex(value)
-
-    if (!normalizedHex) {
-        return null
-    }
-
-    return {
-        red: parseInt(normalizedHex.slice(1, 3), 16),
-        green: parseInt(normalizedHex.slice(3, 5), 16),
-        blue: parseInt(normalizedHex.slice(5, 7), 16),
-    }
+    const trimmed = value.trim()
+    return trimmed ? parseHexOpaque(trimmed) : null
 }
 
 /**
@@ -127,49 +225,71 @@ export function normalizeColor(
     value: string,
     enableAlpha = false,
 ): string | null {
+    const trimmed = value.trim()
+    if (!trimmed) return null
+
     if (enableAlpha) {
-        const rgba = parseColor(value)
+        if (
+            trimmed.length === 9 &&
+            trimmed.charCodeAt(0) === 35 &&
+            isLowercaseHexDigits(trimmed, 1, 8)
+        ) {
+            return trimmed
+        }
+        const opaque = parseHexOpaque(trimmed)
+        if (opaque) {
+            return `#${HEX_BYTES[opaque.red]}${HEX_BYTES[opaque.green]}${HEX_BYTES[opaque.blue]}ff`
+        }
+        const alphaHex = parseHexAlpha(trimmed)
+        if (alphaHex) return rgbaToHex(alphaHex)
+        const rgb = parseRgbTrimmed(trimmed)
+        if (rgb) {
+            return `#${HEX_BYTES[rgb.red]}${HEX_BYTES[rgb.green]}${HEX_BYTES[rgb.blue]}ff`
+        }
+        const rgba = parseRgbaTrimmed(trimmed)
         return rgba ? rgbaToHex(rgba) : null
     }
-    const normalizedHex = normalizeHex(value)
 
+    const normalizedHex = normalizeHexTrimmed(trimmed)
     if (normalizedHex) {
         return normalizedHex
     }
 
-    const rgb = parseRgb(value)
-
+    const rgb = parseRgbTrimmed(trimmed)
     return rgb ? rgbToHex(rgb) : null
 }
 
 export function isValidColor(value: string, enableAlpha = false) {
-    return normalizeColor(value, enableAlpha) !== null
+    const trimmed = value.trim()
+    if (!trimmed) return false
+
+    if (parseHexOpaque(trimmed) !== null) return true
+    if (enableAlpha && parseHexAlpha(trimmed) !== null) return true
+    if (parseRgbTrimmed(trimmed) !== null) return true
+    return enableAlpha && parseRgbaTrimmed(trimmed) !== null
 }
 
 export function rgbToHsv({ red, green, blue }: RgbColor): HsvColor {
-    const normalizedRed = red / 255
-    const normalizedGreen = green / 255
-    const normalizedBlue = blue / 255
-    const max = Math.max(normalizedRed, normalizedGreen, normalizedBlue)
-    const min = Math.min(normalizedRed, normalizedGreen, normalizedBlue)
+    const max = Math.max(red, green, blue)
+    const min = Math.min(red, green, blue)
     const delta = max - min
 
     let hue = 0
 
     if (delta !== 0) {
-        if (max === normalizedRed) {
-            hue = 60 * (((normalizedGreen - normalizedBlue) / delta) % 6)
-        } else if (max === normalizedGreen) {
-            hue = 60 * ((normalizedBlue - normalizedRed) / delta + 2)
+        if (max === red) {
+            hue = 60 * (((green - blue) / delta) % 6)
+        } else if (max === green) {
+            hue = 60 * ((blue - red) / delta + 2)
         } else {
-            hue = 60 * ((normalizedRed - normalizedGreen) / delta + 4)
+            hue = 60 * ((red - green) / delta + 4)
         }
     }
 
     return {
         hue: hue < 0 ? hue + 360 : hue,
         saturation: max === 0 ? 0 : (delta / max) * 100,
-        value: max * 100,
+        value: (max / 255) * 100,
     }
 }
 
@@ -212,6 +332,8 @@ export function hsvToRgb({ hue, saturation, value }: HsvColor): RgbColor {
     }
 }
 
+const defaultPickerHsv: HsvColor = rgbToHsv(parseHexOpaque(defaultPickerColor)!)
+
 export function toPickerHex(value: string, enableAlpha = false) {
     return normalizeColor(value, enableAlpha) ?? defaultPickerColor
 }
@@ -227,7 +349,6 @@ export function formatColor(value: string, format: ColorFormat) {
 }
 
 export function getHsvFromValue(value: string): HsvColor {
-    const rgb = parseColor(value) ?? hexToRgb(defaultPickerColor)
-
-    return rgb ? rgbToHsv(rgb) : { hue: 176, saturation: 92, value: 93 }
+    const rgb = parseColor(value)
+    return rgb ? rgbToHsv(rgb) : { ...defaultPickerHsv }
 }

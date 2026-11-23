@@ -17,6 +17,18 @@ function assignRef<Element>(
 export function composeRefs<Element>(
     refs: readonly (Ref<Element> | undefined)[],
 ): RefCallback<Element> {
+    if (refs.length === 2) {
+        const first = refs[0]
+        const second = refs[1]
+        if (second === undefined || second === first) {
+            if (first && typeof first === 'object') {
+                return (node) => {
+                    first.current = node
+                }
+            }
+        }
+    }
+
     const uniqueRefs = [...new Set(refs)]
 
     return (node) => {

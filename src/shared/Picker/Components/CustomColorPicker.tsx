@@ -1,7 +1,70 @@
 import { AlertCircle, Palette, Pipette, X } from 'lucide-react'
+import { memo, useCallback } from 'react'
+import type { MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import useCustomColorPickerLogic from '../Hooks/useCustomColorPickerLogic.ts'
 import type { CustomColorPickerProps } from '../Types/picker.types.ts'
+import type { PickerMessages } from '../../../lib/Messages/Types/i18n.types.ts'
+
+const NOOP = () => undefined
+const PALETTE_ICON = <Palette className="h-5 w-5" />
+const PIPETTE_ICON = <Pipette className="h-4 w-4" />
+const CLOSE_ICON = <X className="h-4 w-4" />
+
+interface PickerPresetListProps {
+    presetEntries: Array<{ preset: string; isActive: boolean }>
+    presetsClassName?: string
+    presetClassName?: string
+    presetActiveBorder?: string
+    presetBorder?: string
+    disabled: boolean
+    presetColorLabel: PickerMessages['presetColor']
+    onPresetClick: (preset: string) => void
+}
+
+const PickerPresetList = memo(function PickerPresetList({
+    presetEntries,
+    presetsClassName,
+    presetClassName,
+    presetActiveBorder,
+    presetBorder,
+    disabled,
+    presetColorLabel,
+    onPresetClick,
+}: PickerPresetListProps) {
+    const handleClick = useCallback(
+        (event: MouseEvent<HTMLButtonElement>) => {
+            const preset = event.currentTarget.dataset.preset
+            if (preset !== undefined) onPresetClick(preset)
+        },
+        [onPresetClick],
+    )
+
+    return (
+        <div className={presetsClassName ?? 'mt-2 flex flex-wrap gap-2'}>
+            {presetEntries.map(({ preset, isActive }) => (
+                <button
+                    key={preset}
+                    type="button"
+                    data-preset={preset}
+                    onClick={handleClick}
+                    disabled={disabled}
+                    aria-label={presetColorLabel(preset)}
+                    aria-pressed={isActive}
+                    className={`cursor-pointer focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed ${
+                        presetClassName ??
+                        `h-7 w-7 rounded-lg border transition-colors focus-visible:ring-rentner-accent ${
+                            isActive
+                                ? `ring-2 ring-offset-2 ring-offset-background-dark ${presetActiveBorder}`
+                                : presetBorder
+                        }`
+                    }`}
+                    style={{ backgroundColor: preset }}
+                />
+            ))}
+        </div>
+    )
+})
 
 export function CustomColorPicker(props: CustomColorPickerProps) {
     const { state, handler, refs } = useCustomColorPickerLogic(props)
@@ -89,7 +152,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                                 className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent`}
                                 aria-label={messages.eyeDropper}
                             >
-                                <Pipette className="h-4 w-4" />
+                                {PIPETTE_ICON}
                             </button>
                         )}
                         <button
@@ -99,7 +162,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                             className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border ${design.border} ${design.iconColor} ${design.hoverText} transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rentner-accent`}
                             aria-label={messages.closePicker}
                         >
-                            <X className="h-4 w-4" />
+                            {CLOSE_ICON}
                         </button>
                     </div>
                 </div>
@@ -231,7 +294,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                 ref={setValidationInputRef}
                 type="text"
                 value={state.draftValue}
-                onChange={() => undefined}
+                onChange={NOOP}
                 onInvalid={handler.handleInvalid}
                 required={required && error === undefined}
                 disabled={disabled}
@@ -244,7 +307,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                 type="hidden"
                 name={name}
                 value={state.safeValue}
-                onChange={() => undefined}
+                onChange={NOOP}
                 disabled={disabled}
             />
 
@@ -272,7 +335,7 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                         <span
                             className={`flex items-center [&>svg]:h-5 [&>svg]:w-5 ${classNames.leading === undefined ? `${design.iconColor} ${design.iconFocus} transition-colors` : ''}`}
                         >
-                            {icon || <Palette className="h-5 w-5" />}
+                            {icon || PALETTE_ICON}
                         </span>
                     )}
                 </div>
@@ -377,35 +440,16 @@ export function CustomColorPicker(props: CustomColorPickerProps) {
                 : null}
 
             {showPresets && presetEntries.length > 0 && (
-                <div
-                    className={
-                        classNames.presets ?? 'mt-2 flex flex-wrap gap-2'
-                    }
-                >
-                    {presetEntries.map(({ preset, isActive }) => {
-                        return (
-                            <button
-                                key={preset}
-                                type="button"
-                                onClick={() =>
-                                    handler.handlePresetClick(preset)
-                                }
-                                disabled={disabled || readOnly}
-                                aria-label={messages.presetColor(preset)}
-                                aria-pressed={isActive}
-                                className={`cursor-pointer focus-visible:outline-none focus-visible:ring-2 disabled:cursor-not-allowed ${
-                                    classNames.preset ??
-                                    `h-7 w-7 rounded-lg border transition-colors focus-visible:ring-rentner-accent ${
-                                        isActive
-                                            ? `ring-2 ring-offset-2 ring-offset-background-dark ${design.presetActiveBorder}`
-                                            : design.presetBorder
-                                    }`
-                                }`}
-                                style={{ backgroundColor: preset }}
-                            />
-                        )
-                    })}
-                </div>
+                <PickerPresetList
+                    presetEntries={presetEntries}
+                    presetsClassName={classNames.presets}
+                    presetClassName={classNames.preset}
+                    presetActiveBorder={design.presetActiveBorder}
+                    presetBorder={design.presetBorder}
+                    disabled={disabled || readOnly}
+                    presetColorLabel={messages.presetColor}
+                    onPresetClick={handler.handlePresetClick}
+                />
             )}
         </div>
     )

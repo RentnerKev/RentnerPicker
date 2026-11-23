@@ -2,6 +2,7 @@ export function isComposedAncestor(
     target: EventTarget | undefined | null,
     element: Element | null,
 ) {
+    if (!(target instanceof Node)) return false
     let current: Node | null = element
     while (current) {
         if (current === target) return true
