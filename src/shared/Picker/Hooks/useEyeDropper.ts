@@ -13,8 +13,9 @@ export function useEyeDropper(options: UseEyeDropperOptions): EyeDropperResult {
     const [isPending, setIsPending] = useState(false)
     const cancel = useCallback(() => {
         const controller = requestRef.current
+        if (!controller) return
         requestRef.current = null
-        controller?.abort()
+        controller.abort()
         if (mountedRef.current) setIsPending(false)
     }, [])
     useLayoutEffect(() => {
@@ -26,8 +27,10 @@ export function useEyeDropper(options: UseEyeDropperOptions): EyeDropperResult {
     }, [cancel])
     useLayoutEffect(() => {
         latestRef.current = options
+    })
+    useLayoutEffect(() => {
         if (!options.enabled) cancel()
-    }, [options, cancel])
+    }, [options.enabled, cancel])
     const select = useCallback(async () => {
         if (
             !mountedRef.current ||

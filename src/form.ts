@@ -24,15 +24,19 @@ export function mapFieldError(error: unknown): string | null {
 }
 export function getFieldError<T>(
     field: FieldAdapter<T>,
-    options: FieldAdapterOptions = {},
+    options?: FieldAdapterOptions,
 ): string | null {
+    const showErrors = options?.showErrors
     if (
-        options.showErrors === 'never' ||
-        (options.showErrors !== 'always' && !field.state.meta?.isTouched)
+        showErrors === 'never' ||
+        (showErrors !== 'always' && !field.state.meta?.isTouched)
     )
         return null
-    for (const error of field.state.meta?.errors ?? []) {
-        const message = (options.mapError ?? mapFieldError)(error)
+    const errors = field.state.meta?.errors
+    if (!errors?.length) return null
+    const mapper = options?.mapError ?? mapFieldError
+    for (let index = 0; index < errors.length; index++) {
+        const message = mapper(errors[index])
         if (message) return message
     }
     return null
@@ -43,7 +47,7 @@ export interface PickerFieldAdapterOptions extends FieldAdapterOptions {
 /** Draft validity stays separate: invalid text does not replace the committed field value. */
 export function getPickerFieldProps(
     field: FieldAdapter<string>,
-    options: PickerFieldAdapterOptions = {},
+    options?: PickerFieldAdapterOptions,
 ) {
     const error = getFieldError(field, options)
     return {
@@ -52,6 +56,6 @@ export function getPickerFieldProps(
         onValueChange: (value: string) => field.handleChange(value),
         onBlur: () => field.handleBlur(),
         error: error ?? undefined,
-        onValidityChange: options.onValidityChange,
+        onValidityChange: options?.onValidityChange,
     }
 }
